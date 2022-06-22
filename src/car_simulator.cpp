@@ -72,8 +72,8 @@ protected:
                 P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj});
 
                 // Models, textures and Descriptors (values assigned to the uniforms)
-                M_SlBody.init(this, "models/SlotBody.obj");
-                T_SlBody.init(this, "textures/SlotBody.png");
+                M_SlBody.init(this, "models/Hummer.obj");
+                T_SlBody.init(this, "textures/HummerDiff.png");
                 DS_SlBody.init(this, &DSLobj, {
                                 // - first  element : the binding number
                                 // - second element : UNIFORM or TEXTURE (an enum) depending on the type
@@ -83,8 +83,8 @@ protected:
                                 {1, TEXTURE, 0, &T_SlBody}
                 });
 
-                M_SlHandle.init(this, "models/SlotHandle.obj");
-                T_SlHandle.init(this, "textures/SlotHandle.png");
+                M_SlHandle.init(this, "models/Terrain.obj");
+                T_SlHandle.init(this, "textures/Solid_green.png");
                 DS_SlHandle.init(this, &DSLobj, {
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
                                 {1, TEXTURE, 0, &T_SlHandle}
@@ -213,14 +213,8 @@ protected:
         // Here is where you update the uniforms.
         // Very likely this will be where you will be writing the logic of your application.
         void updateUniformBuffer(uint32_t currentImage) {
-                static auto startTime = std::chrono::high_resolution_clock::now();
-                auto currentTime = std::chrono::high_resolution_clock::now();
-                float time = std::chrono::duration<float, std::chrono::seconds::period>
-                                (currentTime - startTime).count();
-                static float lastTime = 0.0f;
-                float deltaT = time - lastTime;
 
-                static float debounce = time;
+                // TODO use time
 
                 globalUniformBufferObject gubo{};
                 UniformBufferObject ubo{};
@@ -240,83 +234,47 @@ protected:
                 }
 
                 ubo.model = glm::translate(glm::mat4(1.0), car_pos)
+                                * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
+                                * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
                                 * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,1,0));
 
-                glm::vec3 eye = glm::vec3(ubo.model * glm::vec4(0,0,0,1));
-
-                /*
-                if (glfwGetKey(window, GLFW_KEY_W)) {
-                        eye.x += 0.005;
-                } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                        eye.x -= 0.005;
-                }
-
-                gubo.view = glm::lookAt(eye,
-                                        glm::vec3(0.0f, 0.0f, 0.0f),
-                                        glm::vec3(0.0f, 1.0f, 0.0f));
-                */
-
-                /*
-                gubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
-                                        glm::vec3(0.0f, 0.0f, 0.0f),
-                                        glm::vec3(0.0f, 1.0f, 0.0f));
-                                        */
-
-                gubo.view = glm::lookAt(glm::vec3(car_pos.x + 2.0f, car_pos.y + 2.0f, car_pos.z),
+                gubo.view = glm::lookAt(glm::vec3(car_pos.x + 10.0f, car_pos.y + 2.0f, car_pos.z),
                                         car_pos,
                                         glm::vec3(0.0f, 1.0f, 0.0f));
+
 
                 vkMapMemory(device, DS_global.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(gubo), 0, &data);
                 memcpy(data, &gubo, sizeof(gubo));
                 vkUnmapMemory(device, DS_global.uniformBuffersMemory[0][currentImage]);
 
-
-                // For the Slot Body
-                //ubo.model = glm::mat4(1.0f);
+                // For the Hummer
                 vkMapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
                 vkUnmapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage]);
 
-                // For the Slot Handle
-                //ubo.model = glm::translate(glm::mat4(1.0f),glm::vec3(0.3f,0.5f,-0.15f));
+
+                // For the Terrain
+                //ubo.model = glm::mat4(1.0f);
                 vkMapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
                 vkUnmapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage]);
 
                 // For the Slot Wheel1
-                /*
-                 * ubo.model = glm::translate(glm::mat4(1.0f),glm::vec3(-0.15f,0.93f,-0.15f)) *
-                            glm::rotate(glm::mat4(1.0f),
-                                        ang1 * glm::radians(90.0f),
-                                        glm::vec3(1.0f, 0.0f, 0.0f));
-                */
                 vkMapMemory(device, DS_SlWheel1.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
                 vkUnmapMemory(device, DS_SlWheel1.uniformBuffersMemory[0][currentImage]);
 
                 // For the Slot Wheel2
-                /*
-                ubo.model = glm::translate(glm::mat4(1.0f),glm::vec3(0.0f,0.93f,-0.15f))*
-                            glm::rotate(glm::mat4(1.0f),
-                                        ang2 * glm::radians(90.0f),
-                                        glm::vec3(1.0f, 0.0f, 0.0f));
-                                        */
                 vkMapMemory(device, DS_SlWheel2.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
                 vkUnmapMemory(device, DS_SlWheel2.uniformBuffersMemory[0][currentImage]);
 
                 // For the Slot Wheel3
-                /*
-                ubo.model = glm::translate(glm::mat4(1.0f),glm::vec3(0.15f,0.93f,-0.15f))*
-                            glm::rotate(glm::mat4(1.0f),
-                                        ang3 * glm::radians(90.0f),
-                                        glm::vec3(1.0f, 0.0f, 0.0f));
-                                        */
                 vkMapMemory(device, DS_SlWheel3.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
