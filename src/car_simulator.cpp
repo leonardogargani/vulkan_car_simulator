@@ -31,14 +31,6 @@ protected:
         Texture T_SlHandle;
         DescriptorSet DS_SlHandle;
 
-		/*
-        Model M_SlWheel;
-        Texture T_SlWheel;
-        DescriptorSet DS_SlWheel1;
-        DescriptorSet DS_SlWheel2;
-        DescriptorSet DS_SlWheel3;
-		*/
-
         DescriptorSet DS_global;
 
 
@@ -49,9 +41,9 @@ protected:
                 initialBackgroundColor = {1.0f, 1.0f, 1.0f, 1.0f};
 
                 // Descriptor pool sizes
-                uniformBlocksInPool = 3; //era 6
-                texturesInPool = 2; //era 5
-                setsInPool = 3; //era 6
+                uniformBlocksInPool = 3;
+                texturesInPool = 2;
+                setsInPool = 3;
         }
 
         void localInit() {
@@ -92,23 +84,6 @@ protected:
                                 {1, TEXTURE, 0, &T_SlHandle}
                 });
 
-                /*
-                M_SlWheel.init(this, "models/SlotWheel.obj");
-                T_SlWheel.init(this, "textures/SlotWheel.png");
-                DS_SlWheel1.init(this, &DSLobj, {
-                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlWheel}
-                });
-                DS_SlWheel2.init(this, &DSLobj, {
-                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlWheel}
-                });
-                DS_SlWheel3.init(this, &DSLobj, {
-                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlWheel}
-                });
-                */
-
                 DS_global.init(this, &DSLglobal, {
                                 {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}
                 });
@@ -123,14 +98,6 @@ protected:
                 DS_SlHandle.cleanup();
                 T_SlHandle.cleanup();
                 M_SlHandle.cleanup();
-				
-				/*
-                DS_SlWheel1.cleanup();
-                DS_SlWheel2.cleanup();
-                DS_SlWheel3.cleanup();
-                M_SlWheel.cleanup();
-                T_SlWheel.cleanup();
-				*/
 
                 DS_global.cleanup();
 
@@ -180,45 +147,25 @@ protected:
                                         0, nullptr);
                 vkCmdDrawIndexed(commandBuffer,
                                  static_cast<uint32_t>(M_SlHandle.indices.size()), 1, 0, 0, 0);
-				
-				/*
-                VkBuffer vertexBuffers3[] = {M_SlWheel.vertexBuffer};
-                VkDeviceSize offsets3[] = {0};
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers3, offsets3);
-                vkCmdBindIndexBuffer(commandBuffer, M_SlWheel.indexBuffer, 0,
-                                     VK_INDEX_TYPE_UINT32);
-                vkCmdBindDescriptorSets(commandBuffer,
-                                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlWheel1.descriptorSets[currentImage],
-                                        0, nullptr);
-                vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlWheel.indices.size()), 1, 0, 0, 0);
-
-                vkCmdBindDescriptorSets(commandBuffer,
-                                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlWheel2.descriptorSets[currentImage],
-                                        0, nullptr);
-                vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlWheel.indices.size()), 1, 0, 0, 0);
-
-                vkCmdBindDescriptorSets(commandBuffer,
-                                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlWheel3.descriptorSets[currentImage],
-                                        0, nullptr);
-                vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlWheel.indices.size()), 1, 0, 0, 0);
-                */
 
         }
 
-        //glm::vec3 eye = glm::vec3(2.0f, 2.0f, 2.0f);
 
         // initial direction the robot (will be updated inside the function)
         float car_angle = 0.0;
         // initial position of the robot (will be updated inside the function)
         glm::vec3 car_pos = glm::vec3(0.0,0.0,0.0);
-        glm::vec3 cam_pos = glm::vec3(10.0,5.0,0.0);
-        glm::vec3 view_pos = glm::vec3(0.0,0.0,0.0);
+
+        /*
+         * How the position of the terrain makes the car look like:
+         *  - x:  backward (-) / forward (+)
+         *  - y:  up (-) / down (+)
+         *  - z:  left (-) / right (+)
+         */
+        float terrain_scale_factor = 10.0;
+        glm::vec3 terrain_pos = glm::vec3(-22.0,-1.5,-16.0) * terrain_scale_factor;
+
+        float car_speed = 0.002 * terrain_scale_factor;
 
         // Here is where you update the uniforms.
         // Very likely this will be where you will be writing the logic of your application.
@@ -231,38 +178,27 @@ protected:
 
                 void* data;
 
+                // For the Terrain
+                ubo.model = glm::translate(glm::mat4(1.0), terrain_pos)
+                                * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
+                                * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
+                                * glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
+
+                vkMapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage], 0,
+                            sizeof(ubo), 0, &data);
+                memcpy(data, &ubo, sizeof(ubo));
+                vkUnmapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage]);
+
+
+                // For the camera
                 gubo.proj = glm::perspective(glm::radians(45.0f),
                                              swapChainExtent.width / (float) swapChainExtent.height,
                                              0.1f, 100.0f);
                 gubo.proj[1][1] *= -1;
 
-
-                if (glfwGetKey(window, GLFW_KEY_W)) {
-                        //car_pos.x += 0.005;
-                        cam_pos.x -= 0.005;
-                        view_pos.x -= 0.005;
-                } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                        //car_pos.x -= 0.005;
-                        cam_pos.x += 0.005;
-                        view_pos.x += 0.005;
-                } else if (glfwGetKey(window, GLFW_KEY_A)) {
-                		cam_pos.z += 0.005;
-                		view_pos.z += 0.005;
-                } else if (glfwGetKey(window, GLFW_KEY_D)) {
-                		cam_pos.z -= 0.005;
-                		view_pos.z -= 0.005;
-                }
-
-                ubo.model = glm::translate(glm::mat4(1.0), car_pos)
-                                * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
-                                * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
-                                * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,1,0));
-                                
-                gubo.view = glm::lookAt(cam_pos, view_pos, glm::vec3(0.0f, 1.0f, 0.0f));
-
-                //gubo.view = glm::lookAt(glm::vec3(car_pos.x + 10.0f, car_pos.y + 5.0f, car_pos.z + 10.0f),
-                //                       car_pos,
-                //                        glm::vec3(0.0f, 1.0f, 0.0f));
+                gubo.view = glm::lookAt(glm::vec3(car_pos.x + 10.0f, car_pos.y + 5.0f, car_pos.z),
+                                        car_pos,
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
 
 
                 vkMapMemory(device, DS_global.uniformBuffersMemory[0][currentImage], 0,
@@ -270,39 +206,30 @@ protected:
                 memcpy(data, &gubo, sizeof(gubo));
                 vkUnmapMemory(device, DS_global.uniformBuffersMemory[0][currentImage]);
 
-                // For the Hummer
+
+                if (glfwGetKey(window, GLFW_KEY_W)) {
+                        car_pos.x -= car_speed;
+                } else if (glfwGetKey(window, GLFW_KEY_S)) {
+                        car_pos.x += car_speed;
+                } else if (glfwGetKey(window, GLFW_KEY_A)) {
+                        car_pos.z += car_speed;
+                } else if (glfwGetKey(window, GLFW_KEY_D)) {
+                        car_pos.z -= car_speed;
+                }
+
+                std::cout << "Car at   x=" << car_pos.x << " z=" << car_pos.z << std::endl;
+
+                // For the car
+                ubo.model = glm::translate(glm::mat4(1.0), car_pos)
+                            * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
+                            * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
+                            * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,1,0));
+
                 vkMapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
                 vkUnmapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage]);
 
-
-                // For the Terrain
-                //ubo.model = glm::mat4(1.0f);
-                vkMapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage], 0,
-                            sizeof(ubo), 0, &data);
-                memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage]);
-
-				/*
-                // For the Slot Wheel1
-                vkMapMemory(device, DS_SlWheel1.uniformBuffersMemory[0][currentImage], 0,
-                            sizeof(ubo), 0, &data);
-                memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(device, DS_SlWheel1.uniformBuffersMemory[0][currentImage]);
-
-                // For the Slot Wheel2
-                vkMapMemory(device, DS_SlWheel2.uniformBuffersMemory[0][currentImage], 0,
-                            sizeof(ubo), 0, &data);
-                memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(device, DS_SlWheel2.uniformBuffersMemory[0][currentImage]);
-
-                // For the Slot Wheel3
-                vkMapMemory(device, DS_SlWheel3.uniformBuffersMemory[0][currentImage], 0,
-                            sizeof(ubo), 0, &data);
-                memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(device, DS_SlWheel3.uniformBuffersMemory[0][currentImage]);
-                */
         }
 };
 

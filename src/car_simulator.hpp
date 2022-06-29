@@ -1966,8 +1966,6 @@ void DescriptorSet::init(BaseProject *bp, DescriptorSetLayout *DSL,
 
         descriptorSets.resize(BP->swapChainImages.size());
 
-		std::cout << BP->swapChainImages.size() << std::endl; 		
-		
         VkResult result = vkAllocateDescriptorSets(BP->device, &allocInfo,
                                                    descriptorSets.data());
         if (result != VK_SUCCESS) {
