@@ -156,6 +156,7 @@ protected:
         // initial position of the robot (will be updated inside the function)
         glm::vec3 car_pos = glm::vec3(0.0,0.0,0.0);
 
+        glm::vec3 camera_offset = glm::vec3(10.0f, 3.0f, 0.0f);
         /*
          * How the position of the terrain makes the car look like:
          *  - x:  backward (-) / forward (+)
@@ -196,7 +197,11 @@ protected:
                                              0.1f, 100.0f);
                 gubo.proj[1][1] *= -1;
 
-                gubo.view = glm::lookAt(glm::vec3(car_pos.x + 10.0f, car_pos.y + 5.0f, car_pos.z),
+                float corda = 2.0 * camera_offset.x * sin(glm::radians(car_angle / 2.0));
+
+                gubo.view = glm::lookAt(car_pos + camera_offset - glm::vec3(corda * sin(glm::radians(car_angle / 2.0)),
+                                                                            0.0,
+                                                                            corda * cos(glm::radians(car_angle / 2.0))),
                                         car_pos,
                                         glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -212,18 +217,18 @@ protected:
                 } else if (glfwGetKey(window, GLFW_KEY_S)) {
                         car_pos.x += car_speed;
                 } else if (glfwGetKey(window, GLFW_KEY_A)) {
-                        car_pos.z += car_speed;
+                        car_angle += 0.05;
                 } else if (glfwGetKey(window, GLFW_KEY_D)) {
-                        car_pos.z -= car_speed;
+                        car_angle -= 0.05;
                 }
 
-                std::cout << "Car at   x=" << car_pos.x << " z=" << car_pos.z << std::endl;
+                std::cout << "Car at   x=" << car_pos.x << " z=" << car_pos.z << ", angle=" << car_angle << std::endl;
 
                 // For the car
                 ubo.model = glm::translate(glm::mat4(1.0), car_pos)
                             * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
                             * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
-                            * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,1,0));
+                            * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,0,1));
 
                 vkMapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
