@@ -692,11 +692,15 @@ protected:
                 VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
                 uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+                
+                
 
                 if (swapChainSupport.capabilities.maxImageCount > 0 &&
                     imageCount > swapChainSupport.capabilities.maxImageCount) {
                         imageCount = swapChainSupport.capabilities.maxImageCount;
                 }
+                
+                
 
                 VkSwapchainCreateInfoKHR createInfo{};
                 createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1962,6 +1966,8 @@ void DescriptorSet::init(BaseProject *bp, DescriptorSetLayout *DSL,
 
         descriptorSets.resize(BP->swapChainImages.size());
 
+		std::cout << BP->swapChainImages.size() << std::endl; 		
+		
         VkResult result = vkAllocateDescriptorSets(BP->device, &allocInfo,
                                                    descriptorSets.data());
         if (result != VK_SUCCESS) {
