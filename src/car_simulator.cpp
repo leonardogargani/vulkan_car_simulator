@@ -23,13 +23,13 @@ protected:
         Pipeline P1;
 
         // Models, textures and Descriptors (values assigned to the uniforms)
-        Model M_SlBody;
-        Texture T_SlBody;
-        DescriptorSet DS_SlBody;
+        Model M_SlCar;
+        Texture T_SlCar;
+        DescriptorSet DS_SlCar;
 
-        Model M_SlHandle;
-        Texture T_SlHandle;
-        DescriptorSet DS_SlHandle;
+        Model M_SlTerrain;
+        Texture T_SlTerrain;
+        DescriptorSet DS_SlTerrain;
 
         DescriptorSet DS_global;
 
@@ -66,22 +66,22 @@ protected:
                 P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj});
 
                 // Models, textures and Descriptors (values assigned to the uniforms)
-                M_SlBody.init(this, "models/Hummer.obj");
-                T_SlBody.init(this, "textures/HummerDiff.png");
-                DS_SlBody.init(this, &DSLobj, {
+                M_SlCar.init(this, "models/Hummer.obj");
+                T_SlCar.init(this, "textures/HummerDiff.png");
+                DS_SlCar.init(this, &DSLobj, {
                                 // - first  element : the binding number
                                 // - second element : UNIFORM or TEXTURE (an enum) depending on the type
                                 // - third  element : only for UNIFORMs, the size of the corresponding C++ object
                                 // - fourth element : only for TEXTUREs, the pointer to the corresponding texture object
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlBody}
+                                {1, TEXTURE, 0, &T_SlCar}
                 });
 
-                M_SlHandle.init(this, "models/Terrain.obj");
-                T_SlHandle.init(this, "textures/Solid_green.png");
-                DS_SlHandle.init(this, &DSLobj, {
+                M_SlTerrain.init(this, "models/Terrain.obj");
+                T_SlTerrain.init(this, "textures/Solid_green.png");
+                DS_SlTerrain.init(this, &DSLobj, {
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlHandle}
+                                {1, TEXTURE, 0, &T_SlTerrain}
                 });
 
                 DS_global.init(this, &DSLglobal, {
@@ -91,13 +91,13 @@ protected:
 
 
         void localCleanup() {
-                DS_SlBody.cleanup();
-                T_SlBody.cleanup();
-                M_SlBody.cleanup();
+                DS_SlCar.cleanup();
+                T_SlCar.cleanup();
+                M_SlCar.cleanup();
 
-                DS_SlHandle.cleanup();
-                T_SlHandle.cleanup();
-                M_SlHandle.cleanup();
+                DS_SlTerrain.cleanup();
+                T_SlTerrain.cleanup();
+                M_SlTerrain.cleanup();
 
                 DS_global.cleanup();
 
@@ -117,36 +117,36 @@ protected:
                                         P1.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage],
                                         0, nullptr);
 
-                VkBuffer vertexBuffers[] = {M_SlBody.vertexBuffer};
+                VkBuffer vertexBuffers[] = {M_SlCar.vertexBuffer};
                 // property .vertexBuffer of models, contains the VkBuffer handle to its vertex buffer
                 VkDeviceSize offsets[] = {0};
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
                 // property .indexBuffer of models, contains the VkBuffer handle to its index buffer
-                vkCmdBindIndexBuffer(commandBuffer, M_SlBody.indexBuffer, 0,
+                vkCmdBindIndexBuffer(commandBuffer, M_SlCar.indexBuffer, 0,
                                      VK_INDEX_TYPE_UINT32);
 
                 // property .pipelineLayout of a pipeline contains its layout.
                 // property .descriptorSets of a descriptor set contains its elements.
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlBody.descriptorSets[currentImage],
+                                        P1.pipelineLayout, 1, 1, &DS_SlCar.descriptorSets[currentImage],
                                         0, nullptr);
 
                 // property .indices.size() of models, contains the number of triangles * 3 of the mesh.
                 vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlBody.indices.size()), 1, 0, 0, 0);
+                                 static_cast<uint32_t>(M_SlCar.indices.size()), 1, 0, 0, 0);
 
-                VkBuffer vertexBuffers2[] = {M_SlHandle.vertexBuffer};
+                VkBuffer vertexBuffers2[] = {M_SlTerrain.vertexBuffer};
                 VkDeviceSize offsets2[] = {0};
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets2);
-                vkCmdBindIndexBuffer(commandBuffer, M_SlHandle.indexBuffer, 0,
+                vkCmdBindIndexBuffer(commandBuffer, M_SlTerrain.indexBuffer, 0,
                                      VK_INDEX_TYPE_UINT32);
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlHandle.descriptorSets[currentImage],
+                                        P1.pipelineLayout, 1, 1, &DS_SlTerrain.descriptorSets[currentImage],
                                         0, nullptr);
                 vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlHandle.indices.size()), 1, 0, 0, 0);
+                                 static_cast<uint32_t>(M_SlTerrain.indices.size()), 1, 0, 0, 0);
 
         }
 
@@ -166,13 +166,20 @@ protected:
         float terrain_scale_factor = 10.0;
         glm::vec3 terrain_pos = glm::vec3(-22.0,-1.5,-16.0) * terrain_scale_factor;
 
-        float car_speed = 0.002 * terrain_scale_factor;
+        float car_lin_speed = 1.2 * terrain_scale_factor;
+        float car_ang_speed = 1.8 * terrain_scale_factor;
 
         // Here is where you update the uniforms.
         // Very likely this will be where you will be writing the logic of your application.
         void updateUniformBuffer(uint32_t currentImage) {
 
-                // TODO use time
+                static auto start_time = std::chrono::high_resolution_clock::now();
+                static float last_time = 0.0f;
+
+                auto current_time = std::chrono::high_resolution_clock::now();
+                float time = std::chrono::duration<float, std::chrono::seconds::period> (current_time - start_time).count();
+                float delta_time = time - last_time;
+                last_time = time;
 
                 globalUniformBufferObject gubo{};
                 UniformBufferObject ubo{};
@@ -185,10 +192,10 @@ protected:
                                 * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
                                 * glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
 
-                vkMapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage], 0,
+                vkMapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(device, DS_SlHandle.uniformBuffersMemory[0][currentImage]);
+                vkUnmapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage]);
 
 
                 // For the camera
@@ -200,8 +207,8 @@ protected:
                 float corda = 2.0 * camera_offset.x * sin(glm::radians(car_angle / 2.0));
 
                 gubo.view = glm::lookAt(car_pos + camera_offset - glm::vec3(corda * sin(glm::radians(car_angle / 2.0)),
-                                                                            0.0,
-                                                                            corda * cos(glm::radians(car_angle / 2.0))),
+                                                                                                0.0,
+                                                                                                corda * cos(glm::radians(car_angle / 2.0))),
                                         car_pos,
                                         glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -213,16 +220,20 @@ protected:
 
 
                 if (glfwGetKey(window, GLFW_KEY_W)) {
-                        car_pos.x -= car_speed;
+                        car_pos.x -= car_lin_speed * cos(glm::radians(car_angle)) * delta_time;
+                        car_pos.z += car_lin_speed * sin(glm::radians(car_angle)) * delta_time;
                 } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                        car_pos.x += car_speed;
-                } else if (glfwGetKey(window, GLFW_KEY_A)) {
-                        car_angle += 0.05;
-                } else if (glfwGetKey(window, GLFW_KEY_D)) {
-                        car_angle -= 0.05;
+                        car_pos.x += car_lin_speed * cos(glm::radians(car_angle)) * delta_time;
+                        car_pos.z -= car_lin_speed * sin(glm::radians(car_angle)) * delta_time;
                 }
 
-                std::cout << "Car at   x=" << car_pos.x << " z=" << car_pos.z << ", angle=" << car_angle << std::endl;
+                if (glfwGetKey(window, GLFW_KEY_A)) {
+                        car_angle += car_ang_speed * delta_time;
+                } else if (glfwGetKey(window, GLFW_KEY_D)) {
+                        car_angle -= car_ang_speed * delta_time;
+                }
+
+                std::cout << "Car at  x=" << car_pos.x << ", z=" << car_pos.z << ", angle=" << car_angle << std::endl;
 
                 // For the car
                 ubo.model = glm::translate(glm::mat4(1.0), car_pos)
@@ -230,10 +241,10 @@ protected:
                             * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
                             * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,0,1));
 
-                vkMapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage], 0,
+                vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(device, DS_SlBody.uniformBuffersMemory[0][currentImage]);
+                vkUnmapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage]);
 
         }
 };
