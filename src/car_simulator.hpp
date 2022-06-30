@@ -1,5 +1,8 @@
 // This has been adapted from the Vulkan tutorial
 
+#ifndef CAR_SIMULATOR_H
+#define CAR_SIMULATOR_H
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -30,7 +33,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-//
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -2030,3 +2032,6 @@ void DescriptorSet::cleanup() {
                 }
         }
 }
+
+
+#endif          // CAR_SIMULATOR_H
