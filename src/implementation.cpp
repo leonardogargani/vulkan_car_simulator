@@ -19,9 +19,6 @@ struct Car {
 };
 
 
-// distance between the camera and the car
-glm::vec3 camera_offset = glm::vec3(10.0f, 3.0f, 0.0f);
-
 /*
  * How the position of the terrain makes the car look like:
  *  - x:  backward (-) / forward (+)
@@ -33,6 +30,9 @@ glm::vec3 terrain_pos = glm::vec3(-22.0,-1.5,-16.0) * terrain_scale_factor;
 
 float delta_time = 0.0;
 float logging_time = 0.0;
+
+enum CameraType { Normal, Distant, Front };
+CameraType camera_type = Normal;
 
 
 Car car = Car(terrain_scale_factor);
@@ -50,7 +50,6 @@ float compute_elapsed_time() {
 }
 
 
-// Update the pose of the car when a key is pressed
 void handle_key_presses() {
 
         if (glfwGetKey(window, GLFW_KEY_W)) {
@@ -59,7 +58,6 @@ void handle_key_presses() {
         } else if (glfwGetKey(window, GLFW_KEY_S)) {
                 car.pos.x += car.lin_speed * cos(glm::radians(car.angle)) * delta_time;
                 car.pos.z -= car.lin_speed * sin(glm::radians(car.angle)) * delta_time;
-
         }
 
         if (glfwGetKey(window, GLFW_KEY_A)) {
@@ -68,6 +66,13 @@ void handle_key_presses() {
                 car.angle -= car.ang_speed * delta_time;
         }
 
+        if (glfwGetKey(window, GLFW_KEY_V)) {
+                camera_type = Normal;
+        } else if (glfwGetKey(window, GLFW_KEY_B)) {
+                camera_type = Distant;
+        } else if (glfwGetKey(window, GLFW_KEY_N)) {
+                camera_type = Front;
+        }
 }
 
 
@@ -110,9 +115,30 @@ void update_gubo_for_camera(uint32_t currentImage) {
         globalUniformBufferObject gubo{};
         void* data;
 
-        gubo.proj = glm::perspective(glm::radians(45.0f),
-                                     swapChainExtent.width / (float) swapChainExtent.height,
-                                     0.1f, 100.0f);
+        glm::vec3 camera_offset;
+        float field_of_view;
+
+        switch(camera_type)
+        {
+                case Normal:
+                        field_of_view = 45.0;
+                        camera_offset = glm::vec3(10.0f, 3.0f, 0.0f);
+                        break;
+                case Distant:
+                        field_of_view = 90.0;
+                        camera_offset = glm::vec3(20.0f, 15.0f, 0.0f);
+                        break;
+                case Front:
+                        field_of_view = 45.0;
+                        camera_offset = glm::vec3(-10.0f, 3.0f, 0.0f);
+                        break;
+        }
+
+
+        gubo.proj = glm::perspective(glm::radians(field_of_view),
+                     swapChainExtent.width / (float) swapChainExtent.height,
+                     0.1f, 100.0f);
+
         gubo.proj[1][1] *= -1;
 
         float corda = 2.0 * camera_offset.x * sin(glm::radians(car.angle / 2.0));
