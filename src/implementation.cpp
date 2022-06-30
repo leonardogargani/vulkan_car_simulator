@@ -1,9 +1,23 @@
 #include "car_simulator.hpp"
 
 
-// initial direction and position of the car
-float car_angle = 0.0;
-glm::vec3 car_pos = glm::vec3(0.0,0.0,0.0);
+struct Car {
+
+        glm::vec3 pos;
+        // TODO rewrite the angle as yaw-pitch-roll to take into account the terrain
+        float angle;
+        float lin_speed;
+        float ang_speed;
+
+        Car(int terrain_scale_factor)
+        {
+                pos = glm::vec3(0.0, 0.0, 0.0);
+                angle = 0.0;
+                lin_speed = 1.2 * terrain_scale_factor;
+                ang_speed = 1.8 * terrain_scale_factor;
+        }
+};
+
 
 // distance between the camera and the car
 glm::vec3 camera_offset = glm::vec3(10.0f, 3.0f, 0.0f);
@@ -17,11 +31,11 @@ glm::vec3 camera_offset = glm::vec3(10.0f, 3.0f, 0.0f);
 float terrain_scale_factor = 10.0;
 glm::vec3 terrain_pos = glm::vec3(-22.0,-1.5,-16.0) * terrain_scale_factor;
 
-float car_lin_speed = 1.2 * terrain_scale_factor;
-float car_ang_speed = 1.8 * terrain_scale_factor;
-
 float delta_time = 0.0;
 float logging_time = 0.0;
+
+
+Car car = Car(terrain_scale_factor);
 
 
 // Compute elapsed time between two function calls
@@ -40,17 +54,18 @@ float compute_elapsed_time() {
 void handle_key_presses() {
 
         if (glfwGetKey(window, GLFW_KEY_W)) {
-                car_pos.x -= car_lin_speed * cos(glm::radians(car_angle)) * delta_time;
-                car_pos.z += car_lin_speed * sin(glm::radians(car_angle)) * delta_time;
+                car.pos.x -= car.lin_speed * cos(glm::radians(car.angle)) * delta_time;
+                car.pos.z += car.lin_speed * sin(glm::radians(car.angle)) * delta_time;
         } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                car_pos.x += car_lin_speed * cos(glm::radians(car_angle)) * delta_time;
-                car_pos.z -= car_lin_speed * sin(glm::radians(car_angle)) * delta_time;
+                car.pos.x += car.lin_speed * cos(glm::radians(car.angle)) * delta_time;
+                car.pos.z -= car.lin_speed * sin(glm::radians(car.angle)) * delta_time;
+
         }
 
         if (glfwGetKey(window, GLFW_KEY_A)) {
-                car_angle += car_ang_speed * delta_time;
+                car.angle += car.ang_speed * delta_time;
         } else if (glfwGetKey(window, GLFW_KEY_D)) {
-                car_angle -= car_ang_speed * delta_time;
+                car.angle -= car.ang_speed * delta_time;
         }
 
 }
@@ -78,10 +93,10 @@ void update_ubo_for_car(uint32_t currentImage) {
         UniformBufferObject ubo{};
         void* data;
 
-        ubo.model = glm::translate(glm::mat4(1.0), car_pos)
+        ubo.model = glm::translate(glm::mat4(1.0), car.pos)
                     * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
                     * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car_angle), glm::vec3(0,0,1));
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle), glm::vec3(0,0,1));
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -100,10 +115,10 @@ void update_gubo_for_camera(uint32_t currentImage) {
                                      0.1f, 100.0f);
         gubo.proj[1][1] *= -1;
 
-        float corda = 2.0 * camera_offset.x * sin(glm::radians(car_angle / 2.0));
+        float corda = 2.0 * camera_offset.x * sin(glm::radians(car.angle / 2.0));
 
-        gubo.view = glm::lookAt(car_pos + camera_offset - glm::vec3(corda * sin(glm::radians(car_angle / 2.0)), 0.0, corda * cos(glm::radians(car_angle / 2.0))),
-                                car_pos,
+        gubo.view = glm::lookAt(car.pos + camera_offset - glm::vec3(corda * sin(glm::radians(car.angle / 2.0)), 0.0, corda * cos(glm::radians(car.angle / 2.0))),
+                                car.pos,
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 
         vkMapMemory(device, DS_global.uniformBuffersMemory[0][currentImage], 0, sizeof(gubo), 0, &data);
@@ -115,7 +130,7 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
-                std::cout << "Car at  x=" << car_pos.x << ", z=" << car_pos.z << ", angle=" << car_angle << std::endl;
+                std::cout << "Car at  x=" << car.pos.x << ", z=" << car.pos.z << ", angle=" << car.angle << std::endl;
                 logging_time = 0.0;
         } else {
                 logging_time += delta_time;
