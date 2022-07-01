@@ -1,5 +1,7 @@
 #include "car_simulator.hpp"
 
+#define MAX_PRESSURES 500
+#define ACCELERATION 0.0005
 
 struct Car {
 
@@ -31,6 +33,9 @@ glm::vec3 terrain_pos = glm::vec3(-22.0,-1.5,-16.0) * terrain_scale_factor;
 float delta_time = 0.0;
 float logging_time = 0.0;
 
+int w_key_pressures = 0;
+int s_key_pressures = 0;
+
 enum CameraType { Normal, Distant, Front };
 CameraType camera_type = Normal;
 
@@ -51,14 +56,31 @@ float compute_elapsed_time() {
 
 
 void handle_key_presses() {
-
-        if (glfwGetKey(window, GLFW_KEY_W)) {
-                car.pos.x -= car.lin_speed * cos(glm::radians(car.angle)) * delta_time;
-                car.pos.z += car.lin_speed * sin(glm::radians(car.angle)) * delta_time;
-        } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                car.pos.x += car.lin_speed * cos(glm::radians(car.angle)) * delta_time;
-                car.pos.z -= car.lin_speed * sin(glm::radians(car.angle)) * delta_time;
-        }
+		
+		
+		if (glfwGetKey(window, GLFW_KEY_W)) {
+				if(w_key_pressures < MAX_PRESSURES){
+                	w_key_pressures++;
+                }
+                
+                car.pos.x -= cos(glm::radians(car.angle)) * (car.lin_speed * delta_time + w_key_pressures * ACCELERATION);
+                car.pos.z += sin(glm::radians(car.angle)) * (car.lin_speed * delta_time + w_key_pressures * ACCELERATION);
+                
+        } else {
+        		w_key_pressures = 0;
+		}
+        
+        if (glfwGetKey(window, GLFW_KEY_S)) {        		
+				if(s_key_pressures < MAX_PRESSURES){
+                	s_key_pressures++;
+                }
+                
+                car.pos.x += cos(glm::radians(car.angle)) * (car.lin_speed * delta_time + s_key_pressures * ACCELERATION);
+                car.pos.z -= sin(glm::radians(car.angle)) * (car.lin_speed * delta_time + s_key_pressures * ACCELERATION);
+                
+        } else {
+        		s_key_pressures = 0;
+		}
 
         if (glfwGetKey(window, GLFW_KEY_A)) {
                 car.angle += car.ang_speed * delta_time;
