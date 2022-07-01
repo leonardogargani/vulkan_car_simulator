@@ -1,7 +1,12 @@
 #include "car_simulator.hpp"
 
-#define MAX_PRESSURES 500
-#define ACCELERATION 0.0005
+#define LIN_ACCEL 20.0
+#define LIN_DECEL 80.0
+
+#define ANG_SPEED 30.0
+
+#define TOP_LIN_SPEED 40.0
+
 
 struct Car {
 
@@ -10,13 +15,13 @@ struct Car {
         float angle;
         float lin_speed;
         float ang_speed;
+        bool is_accelerating;
 
-        Car(int terrain_scale_factor)
+        Car()
         {
                 pos = glm::vec3(0.0, 0.0, 0.0);
                 angle = 0.0;
-                lin_speed = 1.2 * terrain_scale_factor;
-                ang_speed = 1.8 * terrain_scale_factor;
+                lin_speed = 0.0;
         }
 };
 
@@ -40,7 +45,7 @@ enum CameraType { Normal, Distant, Front };
 CameraType camera_type = Normal;
 
 
-Car car = Car(terrain_scale_factor);
+Car car = Car();
 
 
 // Compute elapsed time between two function calls
@@ -56,37 +61,34 @@ float compute_elapsed_time() {
 
 
 void handle_key_presses() {
-		
-		
-		if (glfwGetKey(window, GLFW_KEY_W)) {
-				if(w_key_pressures < MAX_PRESSURES){
-                	w_key_pressures++;
-                }
-                
-                car.pos.x -= cos(glm::radians(car.angle)) * (car.lin_speed * delta_time + w_key_pressures * ACCELERATION);
-                car.pos.z += sin(glm::radians(car.angle)) * (car.lin_speed * delta_time + w_key_pressures * ACCELERATION);
-                
-        } else {
-        		w_key_pressures = 0;
-		}
-        
-        if (glfwGetKey(window, GLFW_KEY_S)) {        		
-				if(s_key_pressures < MAX_PRESSURES){
-                	s_key_pressures++;
-                }
-                
-                car.pos.x += cos(glm::radians(car.angle)) * (car.lin_speed * delta_time + s_key_pressures * ACCELERATION);
-                car.pos.z -= sin(glm::radians(car.angle)) * (car.lin_speed * delta_time + s_key_pressures * ACCELERATION);
-                
-        } else {
-        		s_key_pressures = 0;
-		}
 
-        if (glfwGetKey(window, GLFW_KEY_A)) {
-                car.angle += car.ang_speed * delta_time;
-        } else if (glfwGetKey(window, GLFW_KEY_D)) {
-                car.angle -= car.ang_speed * delta_time;
+        // change velocity with a constant acceleration/deceleration profile
+        if (glfwGetKey(window, GLFW_KEY_W)) {
+                car.lin_speed = std::min(car.lin_speed + LIN_ACCEL * delta_time, TOP_LIN_SPEED);
+        } else if (glfwGetKey(window, GLFW_KEY_S)) {
+                car.lin_speed = std::max(car.lin_speed - LIN_ACCEL * delta_time, -TOP_LIN_SPEED);
+        } else {
+                // decelerate until 0
+                if (car.lin_speed > 0.1) {
+                        car.lin_speed -= LIN_DECEL * delta_time;
+                } else if (car.lin_speed < -0.1) {
+                        car.lin_speed += LIN_DECEL * delta_time;
+                } else {
+                        car.lin_speed = 0.0;
+                }
         }
+
+        // steer only when the car is moving
+        if (glfwGetKey(window, GLFW_KEY_A)) {
+                car.angle += (car.lin_speed == 0.0) ? 0.0 : ANG_SPEED * delta_time;
+        } else if (glfwGetKey(window, GLFW_KEY_D)) {
+                car.angle -= (car.lin_speed == 0.0) ? 0.0 : ANG_SPEED * delta_time;
+        }
+
+        // update car position
+        car.pos.x -= cos(glm::radians(car.angle)) * (car.lin_speed * delta_time);
+        car.pos.z += sin(glm::radians(car.angle)) * (car.lin_speed * delta_time);
+
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
                 camera_type = Normal;
@@ -178,7 +180,8 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
-                std::cout << "Car at  x=" << car.pos.x << ", z=" << car.pos.z << ", angle=" << car.angle << std::endl;
+                std::cout << "Car at  x=" << car.pos.x << " | z=" << car.pos.z
+                                << " | angle=" << car.angle << " | lin_speed=" << car.lin_speed << std::endl;
                 logging_time = 0.0;
         } else {
                 logging_time += delta_time;
