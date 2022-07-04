@@ -78,7 +78,7 @@ protected:
                 });
 
                 M_SlTerrain.init(this, "models/Terrain.obj");
-                T_SlTerrain.init(this, "textures/Solid_green.png");
+                T_SlTerrain.init(this, "textures/SolidGreen.png");
                 DS_SlTerrain.init(this, &DSLobj, {
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
                                 {1, TEXTURE, 0, &T_SlTerrain}

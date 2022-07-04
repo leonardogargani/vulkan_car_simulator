@@ -33,7 +33,6 @@ struct Car {
  *  - z:  left (-) / right (+)
  */
 float terrain_scale_factor = 10.0;
-glm::vec3 terrain_pos = glm::vec3(-22.0,-1.5,-16.0) * terrain_scale_factor;
 
 float delta_time = 0.0;
 float logging_time = 0.0;
@@ -105,10 +104,7 @@ void update_ubo_for_terrain(uint32_t currentImage) {
         UniformBufferObject ubo{};
         void* data;
 
-        ubo.model = glm::translate(glm::mat4(1.0), terrain_pos)
-                    * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
-                    * glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
+        ubo.model = glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
 
         vkMapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -160,8 +156,7 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
 
         gubo.proj = glm::perspective(glm::radians(field_of_view),
-                     swapChainExtent.width / (float) swapChainExtent.height,
-                     0.1f, 100.0f);
+                     swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 300.0f);
 
         gubo.proj[1][1] *= -1;
 
