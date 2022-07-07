@@ -11,19 +11,18 @@
 struct Car {
 
         glm::vec3 pos;
-        // TODO rewrite the angle as yaw-pitch-roll to take into account the terrain
-        float angle;
+        glm::vec3 angle;
         float lin_speed;
         float ang_speed;
         bool is_accelerating;
-        std::vector<float> last_angles;
+        std::vector<glm::vec3> last_angles;
 
         Car()
         {
-                pos = glm::vec3(0.0, 0.0, 0.0);
-                angle = 0.0;
+                pos = glm::vec3(0.0f);
+                angle = glm::vec3(0.0f);
                 lin_speed = 0.0;
-                last_angles = std::vector<float>(300, 0.0f);
+                last_angles = std::vector<glm::vec3>(300, glm::vec3(0.0f));
         }
 };
 
@@ -76,21 +75,35 @@ void handle_key_presses() {
         // steer only when the car is moving, and invert steering when going backward
         if (glfwGetKey(window, GLFW_KEY_A)) {
                 if (car.lin_speed > 0.0) {
-                        car.angle += ANG_SPEED * delta_time;
+                        car.angle.y += ANG_SPEED * delta_time;
                 } else if (car.lin_speed < 0.0) {
-                        car.angle -= ANG_SPEED * delta_time;
+                        car.angle.y -= ANG_SPEED * delta_time;
                 }
         } else if (glfwGetKey(window, GLFW_KEY_D)) {
                 if (car.lin_speed > 0.0) {
-                        car.angle -= ANG_SPEED * delta_time;
+                        car.angle.y -= ANG_SPEED * delta_time;
                 } else if (car.lin_speed < 0.0) {
-                        car.angle += ANG_SPEED * delta_time;
+                        car.angle.y += ANG_SPEED * delta_time;
                 }
         }
 
+        if (glfwGetKey(window, GLFW_KEY_R)) {
+                car.pos = glm::vec3(0.0f);
+                car.angle = glm::vec3(0.0f);
+                car.lin_speed = 0.0;
+                car.last_angles = std::vector<glm::vec3>(300, glm::vec3(0.0f));
+        }
+
+        // keep car angle in the range [-360,360]
+        if (car.angle.y >= 360.0) {
+                car.angle.y -= 360.0;
+        } else if (car.angle.y <= -360.0) {
+                car.angle.y += 360.0;
+        }
+
         // update car position
-        car.pos.x -= cos(glm::radians(car.angle)) * (car.lin_speed * delta_time);
-        car.pos.z += sin(glm::radians(car.angle)) * (car.lin_speed * delta_time);
+        car.pos.x -= cos(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
+        car.pos.z += sin(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
 
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
@@ -123,7 +136,7 @@ void update_ubo_for_car(uint32_t currentImage) {
         void* data;
 
         ubo.model = glm::translate(glm::mat4(1.0), car.pos)
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle), glm::vec3(0,1,0));
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.y), glm::vec3(0,1,0));
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -179,26 +192,26 @@ void update_gubo_for_camera(uint32_t currentImage) {
         float camera_offset_angle = atan(camera_offset.z / camera_offset.x);
 
         if (camera_type == FirstPerson) {
-                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car.angle / 2.0));
+                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car.angle.y / 2.0));
 
-                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car.angle / 2.0) - camera_offset_angle),
+                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car.angle.y / 2.0) - camera_offset_angle),
                                                              0.0,
-                                                             corda * cos(glm::radians(car.angle / 2.0) - camera_offset_angle));
+                                                             corda * cos(glm::radians(car.angle.y / 2.0) - camera_offset_angle));
                 gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
-                                        glm::vec3(car.pos.x - 100 * cos(glm::radians(car.angle)),
+                                        glm::vec3(car.pos.x - 100 * cos(glm::radians(car.angle.y)),
                                                   0.0f,
-                                                  car.pos.z + 100 * sin(glm::radians(car.angle))),
+                                                  car.pos.z + 100 * sin(glm::radians(car.angle.y))),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
         } else {
                 // handle the "delay" of the camera
-                float car_angle = car.last_angles.front();
+                glm::vec3 car_angle = car.last_angles.front();
                 car.last_angles.erase(car.last_angles.begin());
                 car.last_angles.push_back(car.angle);
-                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle / 2.0));
+                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle.y / 2.0));
 
-                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle / 2.0) - camera_offset_angle),
+                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle.y / 2.0) - camera_offset_angle),
                                                              0.0,
-                                                             corda * cos(glm::radians(car_angle / 2.0) - camera_offset_angle));
+                                                             corda * cos(glm::radians(car_angle.y / 2.0) - camera_offset_angle));
                 gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
                                         car.pos,
                                         glm::vec3(0.0f, 1.0f, 0.0f));
@@ -213,8 +226,9 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
-                std::cout << "Car at  x=" << car.pos.x << " | z=" << car.pos.z
-                                << " | angle=" << car.angle << " | lin_speed=" << car.lin_speed << std::endl;
+                std::cout << std::fixed << std::setprecision(2);
+                std::cout << "Car at:    pos.x=" << std::setw(8) << car.pos.x << "    |    pos.z=" << std::setw(8) << car.pos.z
+                                << "    |    angle.y=" << std::setw(7) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
                 logging_time = 0.0;
         } else {
                 logging_time += delta_time;
