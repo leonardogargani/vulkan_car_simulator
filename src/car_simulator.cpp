@@ -11,6 +11,12 @@ struct UniformBufferObject {
         alignas(16) glm::mat4 model;
 };
 
+struct SkyBoxUniformBufferObject {
+		alignas(16) glm::mat4 mvpMat;
+		alignas(16) glm::mat4 mMat;
+		alignas(16) glm::mat4 nMat;
+};
+
 
 class MyProject : public BaseProject {
 protected:
@@ -18,9 +24,11 @@ protected:
         // Descriptor Layouts (what will be passed to the shaders)
         DescriptorSetLayout DSLglobal;
         DescriptorSetLayout DSLobj;
+        DescriptorSetLayout DSLSkyBox;
 
         // Pipelines (Shader couples)
         Pipeline P1;
+        Pipeline P_SkyBox;
 
         // Models, textures and Descriptors (values assigned to the uniforms)
         Model M_SlCar;
@@ -30,6 +38,10 @@ protected:
         Model M_SlTerrain;
         Texture T_SlTerrain;
         DescriptorSet DS_SlTerrain;
+        
+        Model M_SlSkyBox;
+        SkyBoxTexture T_SlSkyBox;
+        DescriptorSet DS_SlSkyBox;
 
         DescriptorSet DS_global;
 
@@ -37,13 +49,13 @@ protected:
         void setWindowParameters() {
                 windowWidth = 800;
                 windowHeight = 600;
-                windowTitle = "Car simulator";
+                windowTitle = "Car Simulator";
                 initialBackgroundColor = {1.0f, 1.0f, 1.0f, 1.0f};
 
                 // Descriptor pool sizes
-                uniformBlocksInPool = 3;
-                texturesInPool = 2;
-                setsInPool = 3;
+                uniformBlocksInPool = 5; //con 8 compila senza errori, 3 è il valore prima dello skybox
+                texturesInPool = 8; //con 8 compila senza errori, 2 è il valore prima dello skybox
+                setsInPool = 5; //con 8 compila senza errori, 3 è il valore prima dello skybox
         }
 
         void localInit() {
@@ -60,10 +72,16 @@ protected:
                 DSLglobal.init(this, {
                                 {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
                 });
+                
+                DSLSkyBox.init(this, {
+                				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+                				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+                });
 
                 // Pipelines (Shader couples)
                 // The last array is a vector of pointer to the layouts of the sets that will be used in the pipeline
-                P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj});
+                P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
 
                 // Models, textures and Descriptors (values assigned to the uniforms)
                 M_SlCar.init(this, "models/Hummer.obj");
@@ -83,6 +101,13 @@ protected:
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
                                 {1, TEXTURE, 0, &T_SlTerrain}
                 });
+                
+                M_SlSkyBox.init(this, "models/SkyBoxCube.obj");
+                T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
+                DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
+								{0, UNIFORM, sizeof(UniformBufferObject)/*sizeof(SkyBoxUniformBufferObject)*/, nullptr},
+								{1, TEXTURE, 0, &T_SlSkyBox}
+                });
 
                 DS_global.init(this, &DSLglobal, {
                                 {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}
@@ -97,13 +122,20 @@ protected:
 
                 DS_SlTerrain.cleanup();
                 T_SlTerrain.cleanup();
-                M_SlTerrain.cleanup();
-
+                M_SlTerrain.cleanup();    
+                
+                DS_SlSkyBox.cleanup();
+                T_SlSkyBox.cleanup();
+                M_SlSkyBox.cleanup();
+                
                 DS_global.cleanup();
-
+                
+                P_SkyBox.cleanup();
                 P1.cleanup();
+                
                 DSLglobal.cleanup();
                 DSLobj.cleanup();
+                DSLSkyBox.cleanup();
         }
 
         // Here it is the creation of the command buffer:
@@ -147,6 +179,21 @@ protected:
                                         0, nullptr);
                 vkCmdDrawIndexed(commandBuffer,
                                  static_cast<uint32_t>(M_SlTerrain.indices.size()), 1, 0, 0, 0);
+                                 
+                                 
+                                 
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_SkyBox.graphicsPipeline);
+				VkBuffer vertexBuffers3[] = {M_SlSkyBox.vertexBuffer};
+				VkDeviceSize offsets3[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers3, offsets3);
+				vkCmdBindIndexBuffer(commandBuffer, M_SlSkyBox.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_SkyBox.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage], 0, nullptr);
+				
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_SkyBox.pipelineLayout, 1, 1, &DS_SlSkyBox.descriptorSets[currentImage], 0, nullptr);			
+								
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlSkyBox.indices.size()), 1, 0, 0, 0);
+				
 
         }
 

@@ -129,6 +129,33 @@ void update_ubo_for_car(uint32_t currentImage) {
 
 }
 
+void update_ubo_for_skybox(uint32_t currentImage) {
+		
+		/*
+		SkyBoxUniformBufferObject skybox_ubo{};
+		void* data;
+		
+		skybox_ubo.mMat = glm::scale(glm::mat4(1.0), glm::vec3(1000.0f));    //glm::mat4(1.0f);
+		skybox_ubo.nMat = glm::mat4(1.0f);
+		skybox_ubo.mvpMat = glm::mat4(0.5,0,0,0,0,-0.666667,0,0,-0.1768,0.235733,-0.0625,0,0,0,0.25,1); // presa da A08
+		
+		vkMapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage], 0, sizeof(skybox_ubo), 0, &data);
+		memcpy(data, &skybox_ubo, sizeof(skybox_ubo));
+		vkUnmapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage]);
+		*/
+		
+		UniformBufferObject skybox_ubo{};
+		void* data;
+		
+		skybox_ubo.model = glm::scale(glm::mat4(1.0), glm::vec3(1000.0f));    //glm::mat4(1.0f);
+		
+		
+		vkMapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage], 0, sizeof(skybox_ubo), 0, &data);
+		memcpy(data, &skybox_ubo, sizeof(skybox_ubo));
+		vkUnmapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage]);
+
+}
+
 
 void update_gubo_for_camera(uint32_t currentImage) {
 
@@ -194,7 +221,8 @@ void updateUniformBuffer(uint32_t currentImage) {
         update_ubo_for_car(currentImage);
         update_gubo_for_camera(currentImage);
         update_ubo_for_terrain(currentImage);
+        update_ubo_for_skybox(currentImage);
 
-        log_car_pose(0.1);
+        //log_car_pose(0.1);
 
 }

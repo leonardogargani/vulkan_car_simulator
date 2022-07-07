@@ -33,6 +33,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+const std::string TEXTURE_PATH = "textures/";
+
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -212,6 +214,20 @@ struct Texture {
         void cleanup();
 };
 
+struct SkyBoxTexture {
+		//BaseProject *BP;
+
+		Texture TD;
+		
+		void createCubicTextureImage(std::vector<std::string> textures);
+		void createSkyBoxImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkImage& image, VkDeviceMemory& imageMemory);
+		void createSkyBoxImageView();
+		void createSkyBoxTextureSampler();
+		
+		void init(BaseProject *bp, std::vector<std::string> textures);
+		void cleanup();
+};
+
 struct DescriptorSetLayoutBinding {
         uint32_t binding;
         VkDescriptorType type;
@@ -233,7 +249,7 @@ struct Pipeline {
         VkPipelineLayout pipelineLayout;
 
         void init(BaseProject *bp, const std::string& VertShader, const std::string& FragShader,
-                  std::vector<DescriptorSetLayout *> D);
+                  std::vector<DescriptorSetLayout *> D, VkCompareOp compareOp);
         VkShaderModule createShaderModule(const std::vector<char>& code);
         static std::vector<char> readFile(const std::string& filename);
         void cleanup();
@@ -248,6 +264,13 @@ struct DescriptorSetElement {
         Texture *tex;
 };
 
+struct SkyBoxDescriptorSetElement {
+        int binding;
+        DescriptorSetElementType type;
+        int size;
+        SkyBoxTexture *tex;
+};
+
 struct DescriptorSet {
         BaseProject *BP;
 
@@ -259,6 +282,8 @@ struct DescriptorSet {
 
         void init(BaseProject *bp, DescriptorSetLayout *L,
                   std::vector<DescriptorSetElement> E);
+        void initDSSkyBox(BaseProject *bp, DescriptorSetLayout *L,
+                  std::vector<SkyBoxDescriptorSetElement> E);
         void cleanup();
 };
 
@@ -267,6 +292,7 @@ struct DescriptorSet {
 class BaseProject {
         friend class Model;
         friend class Texture;
+        friend class SkyBoxTexture;
         friend class Pipeline;
         friend class DescriptorSetLayout;
         friend class DescriptorSet;
@@ -800,25 +826,27 @@ protected:
                 for (size_t i = 0; i < swapChainImages.size(); i++) {
                         swapChainImageViews[i] = createImageView(swapChainImages[i],
                                                                  swapChainImageFormat,
-                                                                 VK_IMAGE_ASPECT_COLOR_BIT, 1);
+                                                                 VK_IMAGE_ASPECT_COLOR_BIT, 1, VK_IMAGE_VIEW_TYPE_2D, 1);
                 }
         }
 
         // Lesson 14
         VkImageView createImageView(VkImage image, VkFormat format,
                                     VkImageAspectFlags aspectFlags,
-                                    uint32_t mipLevels // New in Lesson 23
+                                    uint32_t mipLevels,
+                                    VkImageViewType type,
+                                    int layerCount // New in Lesson 23
         ) {
                 VkImageViewCreateInfo viewInfo{};
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                 viewInfo.image = image;
-                viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                viewInfo.viewType = type; //VK_IMAGE_VIEW_TYPE_2D;
                 viewInfo.format = format;
                 viewInfo.subresourceRange.aspectMask = aspectFlags;
                 viewInfo.subresourceRange.baseMipLevel = 0;
                 viewInfo.subresourceRange.levelCount = mipLevels;
                 viewInfo.subresourceRange.baseArrayLayer = 0;
-                viewInfo.subresourceRange.layerCount = 1;
+                viewInfo.subresourceRange.layerCount = layerCount; //1;
                 VkImageView imageView;
 
                 VkResult result = vkCreateImageView(device, &viewInfo, nullptr,
@@ -953,7 +981,7 @@ protected:
                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                             depthImage, depthImageMemory);
                 depthImageView = createImageView(depthImage, depthFormat,
-                                                 VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+                                                 VK_IMAGE_ASPECT_DEPTH_BIT, 1, VK_IMAGE_VIEW_TYPE_2D, 1);
         }
 
         // Lesson 22.1
@@ -1004,7 +1032,7 @@ protected:
         // New - Lesson 23
         void generateMipmaps(VkImage image, VkFormat imageFormat,
                              int32_t texWidth, int32_t texHeight,
-                             uint32_t mipLevels) {
+                             uint32_t mipLevels, int layerCount) {
                 VkFormatProperties formatProperties;
                 vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat,
                                                     &formatProperties);
@@ -1023,7 +1051,7 @@ protected:
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = 1;
+                barrier.subresourceRange.layerCount = layerCount;//1;
                 barrier.subresourceRange.levelCount = 1;
 
                 int32_t mipWidth = texWidth;
@@ -1048,14 +1076,14 @@ protected:
                         blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                         blit.srcSubresource.mipLevel = i - 1;
                         blit.srcSubresource.baseArrayLayer = 0;
-                        blit.srcSubresource.layerCount = 1;
+                        blit.srcSubresource.layerCount = layerCount;//1;
                         blit.dstOffsets[0] = { 0, 0, 0 };
                         blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1,
                                                mipHeight > 1 ? mipHeight/2:1, 1};
                         blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                         blit.dstSubresource.mipLevel = i;
                         blit.dstSubresource.baseArrayLayer = 0;
-                        blit.dstSubresource.layerCount = 1;
+                        blit.dstSubresource.layerCount = layerCount;//1;
 
                         vkCmdBlitImage(commandBuffer, image,
                                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1093,7 +1121,7 @@ protected:
         // New - Lesson 23
         void transitionImageLayout(VkImage image, VkFormat format,
                                    VkImageLayout oldLayout, VkImageLayout newLayout,
-                                   uint32_t mipLevels) {
+                                   uint32_t mipLevels, int layerCount) {
                 VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
                 VkImageMemoryBarrier barrier{};
@@ -1108,7 +1136,7 @@ protected:
                 barrier.subresourceRange.baseMipLevel = 0;
                 barrier.subresourceRange.levelCount = mipLevels;
                 barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = 1;
+                barrier.subresourceRange.layerCount = layerCount;//1;
 
                 barrier.srcAccessMask = 0;
                 barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -1123,7 +1151,7 @@ protected:
 
         // New - Lesson 23
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t
-        width, uint32_t height) {
+        width, uint32_t height, int layerCount) {
                 VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
                 VkBufferImageCopy region{};
@@ -1133,7 +1161,7 @@ protected:
                 region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 region.imageSubresource.mipLevel = 0;
                 region.imageSubresource.baseArrayLayer = 0;
-                region.imageSubresource.layerCount = 1;
+                region.imageSubresource.layerCount = layerCount;//1;
                 region.imageOffset = {0, 0, 0};
                 region.imageExtent = {width, height, 1};
 
@@ -1191,8 +1219,9 @@ protected:
                 bufferInfo.usage = usage;
                 bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-                VkResult result =
-                                vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+                VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+                
+                
                 if (result != VK_SUCCESS) {
                         PrintVkError(result);
                         throw std::runtime_error("failed to create vertex buffer!");
@@ -1598,12 +1627,12 @@ void Texture::createTextureImage(std::string file) {
                         textureImageMemory);
 
         BP->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
-                                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+                                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, 1);
         BP->copyBufferToImage(stagingBuffer, textureImage,
-                              static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+                              static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1);
 
         BP->generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
-                            texWidth, texHeight, mipLevels);
+                            texWidth, texHeight, mipLevels, 1);
 
         vkDestroyBuffer(BP->device, stagingBuffer, nullptr);
         vkFreeMemory(BP->device, stagingBufferMemory, nullptr);
@@ -1613,7 +1642,7 @@ void Texture::createTextureImageView() {
         textureImageView = BP->createImageView(textureImage,
                                                VK_FORMAT_R8G8B8A8_SRGB,
                                                VK_IMAGE_ASPECT_COLOR_BIT,
-                                               mipLevels);
+                                               mipLevels, VK_IMAGE_VIEW_TYPE_2D, 1);
 }
 
 void Texture::createTextureSampler() {
@@ -1659,12 +1688,157 @@ void Texture::cleanup() {
         vkFreeMemory(BP->device, textureImageMemory, nullptr);
 }
 
+void SkyBoxTexture::init(BaseProject *bp, std::vector<std::string> textures) {
+		TD.BP = bp;
+		createCubicTextureImage(textures);
+		createSkyBoxImageView();
+		createSkyBoxTextureSampler();
+}
+
+void SkyBoxTexture::createCubicTextureImage(std::vector<std::string> textures) {
+		int texWidth, texHeight, texChannels;
+		stbi_uc* pixels[6];
+
+		for(int i = 0; i < 6; i++) {
+			pixels[i] = stbi_load((TEXTURE_PATH + textures[i]).c_str(), &texWidth, &texHeight,
+								&texChannels, STBI_rgb_alpha);
+			if (!pixels[i]) {
+				std::cout << (TEXTURE_PATH + textures[i]).c_str() << "\n";
+				throw std::runtime_error("failed to load texture image!");
+			}
+			std::cout << TEXTURE_PATH + textures[i] << " -> size: " << texWidth
+					  << "x" << texHeight << ", ch: " << texChannels <<"\n";
+		}
+
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+		VkDeviceSize totalImageSize = texWidth * texHeight * 4 * 6;
+		TD.mipLevels = static_cast<uint32_t>(std::floor(
+						std::log2(std::max(texWidth, texHeight)))) + 1;
+		
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		
+		TD.BP->createBuffer(totalImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		  						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+		  						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		  						stagingBuffer, stagingBufferMemory);
+		  						
+		
+		void* data;
+		vkMapMemory(TD.BP->device, stagingBufferMemory, 0, totalImageSize, 0, &data);
+		
+		for(int i = 0; i < 6; i++) {
+			memcpy(static_cast<char *>(data) + imageSize * i, pixels[i], static_cast<size_t>(imageSize));
+		}
+		vkUnmapMemory(TD.BP->device, stagingBufferMemory);
+		
+			
+		for(int i = 0; i < 6; i++) {
+			stbi_image_free(pixels[i]);
+		}			
+		createSkyBoxImage(texWidth, texHeight, TD.mipLevels, TD.textureImage,
+					TD.textureImageMemory);
+				
+					
+		TD.BP->transitionImageLayout(TD.textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, TD.mipLevels, 6);
+		TD.BP->copyBufferToImage(stagingBuffer, TD.textureImage,
+				static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 6);
+
+		TD.BP->generateMipmaps(TD.textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+						texWidth, texHeight, TD.mipLevels, 6);
+
+		vkDestroyBuffer(TD.BP->device, stagingBuffer, nullptr);
+		vkFreeMemory(TD.BP->device, stagingBufferMemory, nullptr);
+}
+
+void SkyBoxTexture::createSkyBoxImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkImage& image, VkDeviceMemory& imageMemory) {
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.extent.width = width;
+		imageInfo.extent.height = height;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = mipLevels;
+		imageInfo.arrayLayers = 6;
+		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		
+		VkResult result = vkCreateImage(TD.BP->device, &imageInfo, nullptr, &image);
+		if (result != VK_SUCCESS) {
+		 	PrintVkError(result);
+		 	throw std::runtime_error("failed to create image!");
+		}
+		
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(TD.BP->device, image, &memRequirements);
+
+		VkMemoryAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memRequirements.size;
+		allocInfo.memoryTypeIndex = TD.BP->findMemoryType(memRequirements.memoryTypeBits,
+											VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		if (vkAllocateMemory(TD.BP->device, &allocInfo, nullptr, &imageMemory) !=
+								VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate image memory!");
+		}
+
+		vkBindImageMemory(TD.BP->device, image, imageMemory, 0);
+}
+
+void SkyBoxTexture::createSkyBoxImageView() {
+		TD.textureImageView = TD.BP->createImageView(TD.textureImage,
+										   VK_FORMAT_R8G8B8A8_SRGB,
+										   VK_IMAGE_ASPECT_COLOR_BIT,
+										   TD.mipLevels,
+										   VK_IMAGE_VIEW_TYPE_CUBE, 6);
+}
+
+void SkyBoxTexture::createSkyBoxTextureSampler() {
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = 16;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = static_cast<float>(TD.mipLevels);
+		
+		VkResult result = vkCreateSampler(TD.BP->device, &samplerInfo, nullptr,
+										  &TD.textureSampler);
+		if (result != VK_SUCCESS) {
+		 	PrintVkError(result);
+		 	throw std::runtime_error("failed to create texture sampler!");
+		}
+}
+
+void SkyBoxTexture::cleanup() {
+        vkDestroySampler(TD.BP->device, TD.textureSampler, nullptr);
+        vkDestroyImageView(TD.BP->device, TD.textureImageView, nullptr);
+        vkDestroyImage(TD.BP->device, TD.textureImage, nullptr);
+        vkFreeMemory(TD.BP->device, TD.textureImageMemory, nullptr);
+}
+
 
 
 
 
 void Pipeline::init(BaseProject *bp, const std::string& VertShader, const std::string& FragShader,
-                    std::vector<DescriptorSetLayout *> D) {
+                    std::vector<DescriptorSetLayout *> D, VkCompareOp compareOp) {
         BP = bp;
 
         auto vertShaderCode = readFile(VertShader);
@@ -1821,7 +1995,7 @@ void Pipeline::init(BaseProject *bp, const std::string& VertShader, const std::s
                         VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = VK_TRUE;
         depthStencil.depthWriteEnable = VK_TRUE;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthStencil.depthCompareOp = compareOp;//VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.minDepthBounds = 0.0f; // Optional
         depthStencil.maxDepthBounds = 1.0f; // Optional
@@ -1929,6 +2103,94 @@ void DescriptorSetLayout::init(BaseProject *bp, std::vector<DescriptorSetLayoutB
 
 void DescriptorSetLayout::cleanup() {
         vkDestroyDescriptorSetLayout(BP->device, descriptorSetLayout, nullptr);
+}
+
+void DescriptorSet::initDSSkyBox(BaseProject *bp, DescriptorSetLayout *DSL, std::vector<SkyBoxDescriptorSetElement> E) {
+		BP = bp;
+
+        // Create uniform buffer
+        uniformBuffers.resize(E.size());
+        uniformBuffersMemory.resize(E.size());
+        toFree.resize(E.size());
+
+        for (int j = 0; j < E.size(); j++) {
+                uniformBuffers[j].resize(BP->swapChainImages.size());
+                uniformBuffersMemory[j].resize(BP->swapChainImages.size());
+                if(E[j].type == UNIFORM) {
+                        for (size_t i = 0; i < BP->swapChainImages.size(); i++) {
+                                VkDeviceSize bufferSize = E[j].size;
+                                BP->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                 uniformBuffers[j][i], uniformBuffersMemory[j][i]);
+                        }
+                        toFree[j] = true;
+                } else {
+                        toFree[j] = false;
+                }
+        }
+
+        // Create Descriptor set
+        std::vector<VkDescriptorSetLayout> layouts(BP->swapChainImages.size(),
+                                                   DSL->descriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = BP->descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(BP->swapChainImages.size());
+        allocInfo.pSetLayouts = layouts.data();
+
+        descriptorSets.resize(BP->swapChainImages.size());
+
+        VkResult result = vkAllocateDescriptorSets(BP->device, &allocInfo,
+                                                   descriptorSets.data());
+        if (result != VK_SUCCESS) {
+                PrintVkError(result);
+                throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+
+
+
+        for (size_t i = 0; i < BP->swapChainImages.size(); i++) {
+                std::vector<VkWriteDescriptorSet> descriptorWrites(E.size());
+                std::vector<VkDescriptorBufferInfo> bufferInfoVector;
+                std::vector<VkDescriptorImageInfo> imageInfoVector;
+
+                for (int j = 0; j < E.size(); j++) {
+                        if(E[j].type == UNIFORM) {
+                                VkDescriptorBufferInfo bufferInfo{};
+                                bufferInfo.buffer = uniformBuffers[j][i];
+                                bufferInfo.offset = 0;
+                                bufferInfo.range = E[j].size;
+                                bufferInfoVector.push_back(bufferInfo);
+
+                                descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                                descriptorWrites[j].dstSet = descriptorSets[i];
+                                descriptorWrites[j].dstBinding = E[j].binding;
+                                descriptorWrites[j].dstArrayElement = 0;
+                                descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                                descriptorWrites[j].descriptorCount = 1;
+                                descriptorWrites[j].pBufferInfo = &(bufferInfoVector.back());
+                        } else if(E[j].type == TEXTURE) {
+
+                                VkDescriptorImageInfo imageInfo{};
+                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                imageInfo.imageView = E[j].tex->TD.textureImageView;
+                                imageInfo.sampler = E[j].tex->TD.textureSampler;
+                                imageInfoVector.push_back(imageInfo);
+
+                                descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                                descriptorWrites[j].dstSet = descriptorSets[i];
+                                descriptorWrites[j].dstBinding = E[j].binding;
+                                descriptorWrites[j].dstArrayElement = 0;
+                                descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                                descriptorWrites[j].descriptorCount = 1;
+                                descriptorWrites[j].pImageInfo = &(imageInfoVector.back());
+                        }
+
+                }
+                vkUpdateDescriptorSets(BP->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
+        }
 }
 
 void DescriptorSet::init(BaseProject *bp, DescriptorSetLayout *DSL,
