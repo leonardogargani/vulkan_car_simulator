@@ -6,14 +6,6 @@ layout(set = 0, binding = 0) uniform globalUniformBufferObject {
 	mat4 proj;
 } gubo;
 
-/*
-layout(set = 1, binding = 0) uniform SkyBoxUniformBufferObject {
-	mat4 mvpMat;
-	mat4 mMat;
-	mat4 nMat;
-} ubo;
-*/
-
 layout(set = 1, binding = 0) uniform UniformBufferObject {
 	mat4 model;
 } ubo;

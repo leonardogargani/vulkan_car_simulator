@@ -1,5 +1,3 @@
-// This has been adapted from the Vulkan tutorial
-
 #ifndef CAR_SIMULATOR_H
 #define CAR_SIMULATOR_H
 
@@ -215,8 +213,6 @@ struct Texture {
 };
 
 struct SkyBoxTexture {
-		//BaseProject *BP;
-
 		Texture TD;
 		
 		void createCubicTextureImage(std::vector<std::string> textures);
