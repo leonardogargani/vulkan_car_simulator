@@ -16,12 +16,14 @@ struct Car {
         float lin_speed;
         float ang_speed;
         bool is_accelerating;
+        std::vector<float> last_angles;
 
         Car()
         {
                 pos = glm::vec3(0.0, 0.0, 0.0);
                 angle = 0.0;
                 lin_speed = 0.0;
+                last_angles = std::vector<float>(300, 0.0f);
         }
 };
 
@@ -40,7 +42,7 @@ float logging_time = 0.0;
 int w_key_pressures = 0;
 int s_key_pressures = 0;
 
-enum CameraType { Normal, Distant, Front };
+enum CameraType { Normal, Distant, Oblique };
 CameraType camera_type = Normal;
 
 
@@ -77,11 +79,19 @@ void handle_key_presses() {
                 }
         }
 
-        // steer only when the car is moving
+        // steer only when the car is moving, and invert steering when going backward
         if (glfwGetKey(window, GLFW_KEY_A)) {
-                car.angle += (car.lin_speed == 0.0) ? 0.0 : ANG_SPEED * delta_time;
+                if (car.lin_speed > 0.0) {
+                        car.angle += ANG_SPEED * delta_time;
+                } else if (car.lin_speed < 0.0) {
+                        car.angle -= ANG_SPEED * delta_time;
+                }
         } else if (glfwGetKey(window, GLFW_KEY_D)) {
-                car.angle -= (car.lin_speed == 0.0) ? 0.0 : ANG_SPEED * delta_time;
+                if (car.lin_speed > 0.0) {
+                        car.angle -= ANG_SPEED * delta_time;
+                } else if (car.lin_speed < 0.0) {
+                        car.angle += ANG_SPEED * delta_time;
+                }
         }
 
         // update car position
@@ -94,7 +104,7 @@ void handle_key_presses() {
         } else if (glfwGetKey(window, GLFW_KEY_B)) {
                 camera_type = Distant;
         } else if (glfwGetKey(window, GLFW_KEY_N)) {
-                camera_type = Front;
+                camera_type = Oblique;
         }
 }
 
@@ -162,9 +172,9 @@ void update_gubo_for_camera(uint32_t currentImage) {
                         field_of_view = 90.0;
                         camera_offset = glm::vec3(20.0f, 15.0f, 0.0f);
                         break;
-                case Front:
+                case Oblique:
                         field_of_view = 45.0;
-                        camera_offset = glm::vec3(-10.0f, 3.0f, 0.0f);
+                        camera_offset = glm::vec3(10.0f, 3.0f, 5.0f);
                         break;
         }
 
@@ -174,9 +184,20 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
         gubo.proj[1][1] *= -1;
 
-        float corda = 2.0 * camera_offset.x * sin(glm::radians(car.angle / 2.0));
+        float car_angle = car.last_angles.front();
+        car.last_angles.erase(car.last_angles.begin());
+        car.last_angles.push_back(car.angle);
 
-        gubo.view = glm::lookAt(car.pos + camera_offset - glm::vec3(corda * sin(glm::radians(car.angle / 2.0)), 0.0, corda * cos(glm::radians(car.angle / 2.0))),
+        float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle / 2.0));
+
+        float camera_offset_angle = atan(camera_offset.z / camera_offset.x);
+
+        glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle / 2.0) - camera_offset_angle),
+                                                     0.0,
+                                                     corda * cos(glm::radians(car_angle / 2.0) - camera_offset_angle));
+
+
+        gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
                                 car.pos,
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 
