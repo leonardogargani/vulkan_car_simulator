@@ -28,12 +28,6 @@ struct Car {
 };
 
 
-/*
- * How the position of the terrain makes the car look like:
- *  - x:  backward (-) / forward (+)
- *  - y:  up (-) / down (+)
- *  - z:  left (-) / right (+)
- */
 float terrain_scale_factor = 10.0;
 
 float delta_time = 0.0;
@@ -42,7 +36,7 @@ float logging_time = 0.0;
 int w_key_pressures = 0;
 int s_key_pressures = 0;
 
-enum CameraType { Normal, Distant, Oblique };
+enum CameraType { Normal, Distant, FirstPerson };
 CameraType camera_type = Normal;
 
 
@@ -104,7 +98,7 @@ void handle_key_presses() {
         } else if (glfwGetKey(window, GLFW_KEY_B)) {
                 camera_type = Distant;
         } else if (glfwGetKey(window, GLFW_KEY_N)) {
-                camera_type = Oblique;
+                camera_type = FirstPerson;
         }
 }
 
@@ -129,9 +123,7 @@ void update_ubo_for_car(uint32_t currentImage) {
         void* data;
 
         ubo.model = glm::translate(glm::mat4(1.0), car.pos)
-                    * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,0,1))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(-90.0f), glm::vec3(0,1,0))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle), glm::vec3(0,0,1));
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle), glm::vec3(0,1,0));
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -172,9 +164,9 @@ void update_gubo_for_camera(uint32_t currentImage) {
                         field_of_view = 90.0;
                         camera_offset = glm::vec3(20.0f, 15.0f, 0.0f);
                         break;
-                case Oblique:
-                        field_of_view = 45.0;
-                        camera_offset = glm::vec3(10.0f, 3.0f, 5.0f);
+                case FirstPerson:
+                        field_of_view = 90.0;
+                        camera_offset = glm::vec3(0.01f, 1.7f, 0.5f);
                         break;
         }
 
@@ -184,22 +176,33 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
         gubo.proj[1][1] *= -1;
 
-        float car_angle = car.last_angles.front();
-        car.last_angles.erase(car.last_angles.begin());
-        car.last_angles.push_back(car.angle);
-
-        float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle / 2.0));
-
         float camera_offset_angle = atan(camera_offset.z / camera_offset.x);
 
-        glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle / 2.0) - camera_offset_angle),
-                                                     0.0,
-                                                     corda * cos(glm::radians(car_angle / 2.0) - camera_offset_angle));
+        if (camera_type == FirstPerson) {
+                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car.angle / 2.0));
 
+                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car.angle / 2.0) - camera_offset_angle),
+                                                             0.0,
+                                                             corda * cos(glm::radians(car.angle / 2.0) - camera_offset_angle));
+                gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
+                                        glm::vec3(car.pos.x - 100 * cos(glm::radians(car.angle)),
+                                                  0.0f,
+                                                  car.pos.z + 100 * sin(glm::radians(car.angle))),
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
+        } else {
+                // handle the "delay" of the camera
+                float car_angle = car.last_angles.front();
+                car.last_angles.erase(car.last_angles.begin());
+                car.last_angles.push_back(car.angle);
+                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle / 2.0));
 
-        gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
-                                car.pos,
-                                glm::vec3(0.0f, 1.0f, 0.0f));
+                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle / 2.0) - camera_offset_angle),
+                                                             0.0,
+                                                             corda * cos(glm::radians(car_angle / 2.0) - camera_offset_angle));
+                gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
+                                        car.pos,
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
+        }
 
         vkMapMemory(device, DS_global.uniformBuffersMemory[0][currentImage], 0, sizeof(gubo), 0, &data);
         memcpy(data, &gubo, sizeof(gubo));
