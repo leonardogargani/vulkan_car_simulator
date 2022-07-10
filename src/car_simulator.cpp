@@ -1,6 +1,20 @@
 #include "car_simulator.hpp"
 
 
+struct Terrain {
+        float width;
+        float height;
+
+        Terrain()
+        {
+                width = 0.0;
+                height = 0.0;
+        }
+};
+
+Terrain terrain = Terrain();
+
+
 struct globalUniformBufferObject {
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
@@ -101,7 +115,53 @@ protected:
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
                                 {1, TEXTURE, 0, &T_SlTerrain}
                 });
-                
+
+
+                float map_min_x = 0.0;
+                float map_max_x = 0.0;
+                float map_min_z = 0.0;
+                float map_max_z = 0.0;
+
+                for (int i = 0; i < std::size(M_SlTerrain.vertices); i++) {
+                        if (M_SlTerrain.vertices[i].pos.x < map_min_x) {
+                                map_min_x = M_SlTerrain.vertices[i].pos.x;
+                        } else if (M_SlTerrain.vertices[i].pos.x > map_max_x) {
+                                map_max_x = M_SlTerrain.vertices[i].pos.x;
+                        }
+
+                        if (M_SlTerrain.vertices[i].pos.z < map_min_z) {
+                                map_min_z = M_SlTerrain.vertices[i].pos.z;
+                        } else if (M_SlTerrain.vertices[i].pos.z > map_max_z) {
+                                map_max_z = M_SlTerrain.vertices[i].pos.z;
+                        }
+                }
+
+                terrain.height = map_max_x - map_min_x;
+                terrain.width = map_max_z - map_min_z;
+
+
+
+                /*
+                Vertex terrain_vertices[std::size(M_SlTerrain.vertices)];
+                std::cout << "M_SlTerrain.vertices[0].pos.y = " << M_SlTerrain.vertices[0].pos.y << std::endl;
+                std::cout << "M_SlTerrain.vertices.size() = " << M_SlTerrain.vertices.size() << std::endl;
+
+                for (int i = 0; i < 20; i++) {
+                        std::cout << i << " - x=" << M_SlTerrain.vertices[i].pos.x
+                                        << "  y=" << M_SlTerrain.vertices[i].pos.y
+                                        << "  z=" << M_SlTerrain.vertices[i].pos.z << std::endl;
+                }
+                */
+
+                /*
+                int i = 0;
+                for (auto & vertex : M_SlTerrain.vertices) {
+                        std::cout << i << " - y=" << M_SlTerrain.vertices[i].pos.y << std::endl;
+                        i++;
+                }
+                 */
+
+
                 M_SlSkyBox.init(this, "models/SkyBoxCube.obj");
                 T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
                 DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {

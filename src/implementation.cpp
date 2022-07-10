@@ -101,9 +101,24 @@ void handle_key_presses() {
                 car.angle.y += 360.0;
         }
 
-        // update car position
-        car.pos.x -= cos(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
-        car.pos.z += sin(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
+        // update car position (the car cannot escape from the map)
+        if (car.pos.x >= terrain.height * terrain_scale_factor / 2.0) {
+                // step behind the map border so that movement is allowed again,
+                // otherwise the car gets stuck at that border
+                car.pos.x -= 0.1;
+        } else if (car.pos.x <= terrain.height * terrain_scale_factor / -2.0) {
+                car.pos.x += 0.1;
+        } else {
+                car.pos.x -= cos(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
+        }
+
+        if (car.pos.z >= terrain.width * terrain_scale_factor / 2.0) {
+                car.pos.z -= 0.1;
+        } else if (car.pos.z <= terrain.width * terrain_scale_factor / -2.0) {
+                car.pos.z += 0.1;
+        } else {
+                car.pos.z += sin(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
+        }
 
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
@@ -227,7 +242,7 @@ void update_gubo_for_camera(uint32_t currentImage) {
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
                 std::cout << std::fixed << std::setprecision(2);
-                std::cout << "Car at:    pos.x=" << std::setw(8) << car.pos.x << "    |    pos.z=" << std::setw(8) << car.pos.z
+                std::cout << "Car at:    pos.x=" << std::setw(7) << car.pos.x << "    |    pos.z=" << std::setw(7) << car.pos.z
                                 << "    |    angle.y=" << std::setw(7) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
                 logging_time = 0.0;
         } else {
