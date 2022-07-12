@@ -1,9 +1,14 @@
 #include "car_simulator.hpp"
 
+#define VERTECES 110
 
 struct Terrain {
         float width;
         float height;
+        
+        /**/
+        std::vector<std::vector<float>> altitudes{VERTECES, std::vector<float>(VERTECES, 0.0f)};
+        /**/
 
         Terrain()
         {
@@ -11,6 +16,18 @@ struct Terrain {
                 height = 0.0;
         }
 };
+
+/**/
+struct Point {
+	
+	float x;
+	float y;
+	float z;
+
+};
+
+std::vector<Point> points;
+/**/
 
 Terrain terrain = Terrain();
 
@@ -71,6 +88,21 @@ protected:
                 texturesInPool = 8; //con 8 compila senza errori, 2 è il valore prima dello skybox
                 setsInPool = 5; //con 8 compila senza errori, 3 è il valore prima dello skybox
         }
+        
+        // Function used to compare two Points.
+		static bool comparePoints(Point p1, Point p2) {
+			if(p1.x < p2.x) {
+				return true;
+			}
+			else if(fabs(p1.x - p2.x) < 0.0001) {
+				if(p1.z < p2.z) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+		
 
         void localInit() {
                 // Descriptor Layouts (what will be passed to the shaders)
@@ -121,6 +153,8 @@ protected:
                 float map_max_x = 0.0;
                 float map_min_z = 0.0;
                 float map_max_z = 0.0;
+                
+                
 
                 for (int i = 0; i < std::size(M_SlTerrain.vertices); i++) {
                         if (M_SlTerrain.vertices[i].pos.x < map_min_x) {
@@ -134,8 +168,52 @@ protected:
                         } else if (M_SlTerrain.vertices[i].pos.z > map_max_z) {
                                 map_max_z = M_SlTerrain.vertices[i].pos.z;
                         }
+                        
+                        /**/
+						// Modo non efficiente per avere un array con i valori unici di ogni vertice --> 12100 elementi.
+                        
+                        bool flag = true;
+                        for(int j = 0; j < points.size(); j++) {
+                        		if(points[j].x == M_SlTerrain.vertices[i].pos.x && points[j].z == M_SlTerrain.vertices[i].pos.z) {
+                        				flag = false;
+                        		}
+                        }
+                        
+                        if(flag){
+                        	Point point = {M_SlTerrain.vertices[i].pos.x, M_SlTerrain.vertices[i].pos.y, M_SlTerrain.vertices[i].pos.z};
+                        	points.push_back(point);
+                        }
+                        
+                        /**/
+                             
+                }
+                
+                /**/
+                
+                // Reorder Points vector using comparePoints (declared above) static function.
+				sort(points.begin(), points.end(), comparePoints);
+
+				// Controllo se primo e ultimo elemento sono corretti: cioè se sono il vertice in basso a sinistra e quello in alto a destra.
+				//std::cout << points[0].x << " --- " << points[0].z << std::endl;
+				//std::cout << points[12099].x << " --- " << points[12099].z << std::endl;
+                
+                // Fill terrain.altitudes vector.
+                int col = 0;
+                int row = 0;
+
+                for(int i = 0; i < points.size(); i++) {
+            		terrain.altitudes[col][row] = points[i].y;
+            		
+            		if(row < VERTECES - 1) {
+            			row = row + 1;
+            		} else {
+            			col = col + 1;
+            			row = 0;
+            		}
                 }
 
+				/**/
+				
                 terrain.height = map_max_x - map_min_x;
                 terrain.width = map_max_z - map_min_z;
 
