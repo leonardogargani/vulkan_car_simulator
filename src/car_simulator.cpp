@@ -1,33 +1,19 @@
 #include "car_simulator.hpp"
 
-#define VERTECES 110
+#define VERTICES_NUMBER 110
+
 
 struct Terrain {
         float width;
         float height;
-        
-        /**/
-        std::vector<std::vector<float>> altitudes{VERTECES, std::vector<float>(VERTECES, 0.0f)};
-        /**/
-
-        Terrain()
-        {
-                width = 0.0;
-                height = 0.0;
-        }
+        std::vector<std::vector<float>> altitudes{VERTICES_NUMBER, std::vector<float>(VERTICES_NUMBER, 0.0f)};
 };
 
-/**/
 struct Point {
-	
 	float x;
 	float y;
 	float z;
-
 };
-
-std::vector<Point> points;
-/**/
 
 Terrain terrain = Terrain();
 
@@ -82,21 +68,13 @@ protected:
                 texturesInPool = 8; //con 8 compila senza errori, 2 è il valore prima dello skybox
                 setsInPool = 5; //con 8 compila senza errori, 3 è il valore prima dello skybox
         }
-        
-        // Function used to compare two Points.
-		static bool comparePoints(Point p1, Point p2) {
-			if(p1.x < p2.x) {
-				return true;
-			}
-			else if(fabs(p1.x - p2.x) < 0.0001) {
-				if(p1.z < p2.z) {
-					return true;
-				}
-			}
 
-			return false;
-		}
-		
+        // Function used to compare two Points.
+        static bool isP1beforeP2(Point p1, Point p2) {
+                return ((p1.x < p2.x)
+                        || ((fabs(p1.x - p2.x) < 0.0001) && (p1.z < p2.z)));
+        }
+
 
         void localInit() {
                 // Descriptor Layouts (what will be passed to the shaders)
@@ -147,10 +125,12 @@ protected:
                 float map_max_x = 0.0;
                 float map_min_z = 0.0;
                 float map_max_z = 0.0;
-                
-                
+
+                std::vector<Point> points;
+
 
                 for (int i = 0; i < std::size(M_SlTerrain.vertices); i++) {
+
                         if (M_SlTerrain.vertices[i].pos.x < map_min_x) {
                                 map_min_x = M_SlTerrain.vertices[i].pos.x;
                         } else if (M_SlTerrain.vertices[i].pos.x > map_max_x) {
@@ -163,125 +143,43 @@ protected:
                                 map_max_z = M_SlTerrain.vertices[i].pos.z;
                         }
                         
-                        /**/
-						// Modo non efficiente per avere un array con i valori unici di ogni vertice --> 12100 elementi.
-                        
-                        bool flag = true;
-                        for(int j = 0; j < points.size(); j++) {
-                        		if(points[j].x == M_SlTerrain.vertices[i].pos.x && points[j].z == M_SlTerrain.vertices[i].pos.z) {
-                        				flag = false;
-                        		}
+
+                        // Store the unique values of all the vertices, discarding the repeated ones.
+                        bool is_point_present = false;
+                        for (int j = 0; j < points.size(); j++) {
+                                if (points[j].x == M_SlTerrain.vertices[i].pos.x && points[j].z == M_SlTerrain.vertices[i].pos.z) {
+                                        is_point_present = true;
+                                }
                         }
                         
-                        if(flag){
+                        if (!is_point_present){
                         	Point point = {M_SlTerrain.vertices[i].pos.x, M_SlTerrain.vertices[i].pos.y, M_SlTerrain.vertices[i].pos.z};
                         	points.push_back(point);
                         }
-                        
-                        /**/
-                             
-                }
-                
-                /**/
-                
-                // Reorder Points vector using comparePoints (declared above) static function.
-				sort(points.begin(), points.end(), comparePoints);
 
-				// Controllo se primo e ultimo elemento sono corretti: cioè se sono il vertice in basso a sinistra e quello in alto a destra.
-				//std::cout << points[0].x << " --- " << points[0].z << std::endl;
-				//std::cout << points[12099].x << " --- " << points[12099].z << std::endl;
-                
-                // Fill terrain.altitudes vector.
+                }
+
+                // Reorder Points vector using comparePoints (declared above) static function.
+                sort(points.begin(), points.end(), isP1beforeP2);
+
                 int col = 0;
                 int row = 0;
 
-                for(int i = 0; i < points.size(); i++) {
+                // Fill terrain.altitudes vector.
+                for (int i = 0; i < points.size(); i++) {
             		terrain.altitudes[col][row] = points[i].y;
             		
-            		if(row < VERTECES - 1) {
-            			row = row + 1;
+            		if (row < VERTICES_NUMBER - 1) {
+            			row++;
             		} else {
-            			col = col + 1;
+            			col++;
             			row = 0;
             		}
                 }
 
-				/**/
-				
-				// Stampe varie per verificare che i valori fossero assegnati correttamente
-				/*
-				std::cout << "Y in (54,0) altitudes: " << terrain.altitudes[53][0] << std::endl;
-				std::cout << "Y in [5831] points: " << points[5830].y << std::endl;
-				
-				std::cout << "Y in (54,4) altitudes: " << terrain.altitudes[53][3] << std::endl;
-				std::cout << "Y in [5834] points: " << points[5833].y << std::endl;	
-				
-				std::cout << "Y in (0,0) altitudes: " << terrain.altitudes[0][0] << std::endl;
-				std::cout << "Y in [0] points: " << points[0].y << std::endl;
-				
-				std::cout << "Y in (25,0) altitudes: " << terrain.altitudes[24][0] << std::endl;
-				std::cout << "Y in [2641] points: " << points[2640].y << std::endl;
-				
-				std::cout << "Y in (0,0): " << terrain.altitudes[0][0] << std::endl;
-				std::cout << "Y in (0,1): " << terrain.altitudes[0][1] << std::endl;
-				std::cout << "Y in (0,2): " << terrain.altitudes[0][2] << std::endl;
-				std::cout << "Y in (0,3): " << terrain.altitudes[0][3] << std::endl;
-				
-				std::cout << "Y in (1,0): " << terrain.altitudes[1][0] << std::endl;
-				std::cout << "Y in (1,1): " << terrain.altitudes[1][1] << std::endl;
-				std::cout << "Y in (1,2): " << terrain.altitudes[1][2] << std::endl;
-				std::cout << "Y in (1,3): " << terrain.altitudes[1][3] << std::endl;
-				
-				std::cout << "Y in (2,0): " << terrain.altitudes[2][0] << std::endl;
-				std::cout << "Y in (2,1): " << terrain.altitudes[2][1] << std::endl;
-				std::cout << "Y in (2,2): " << terrain.altitudes[2][2] << std::endl;
-				std::cout << "Y in (2,3): " << terrain.altitudes[2][3] << std::endl;
-				
-				std::cout << "Y in (3,0): " << terrain.altitudes[3][0] << std::endl;
-				std::cout << "Y in (3,1): " << terrain.altitudes[3][1] << std::endl;
-				std::cout << "Y in (3,2): " << terrain.altitudes[3][2] << std::endl;
-				std::cout << "Y in (3,3): " << terrain.altitudes[3][3] << std::endl;
-				
-				std::cout << "Y in (4,0): " << terrain.altitudes[4][0] << std::endl;
-				std::cout << "Y in (4,1): " << terrain.altitudes[4][1] << std::endl;
-				std::cout << "Y in (4,2): " << terrain.altitudes[4][2] << std::endl;
-				std::cout << "Y in (4,3): " << terrain.altitudes[4][3] << std::endl;
-				
-				std::cout << "Y in (5,0): " << terrain.altitudes[5][0] << std::endl;
-				std::cout << "Y in (5,1): " << terrain.altitudes[5][1] << std::endl;
-				std::cout << "Y in (5,2): " << terrain.altitudes[5][2] << std::endl;
-				std::cout << "Y in (5,3): " << terrain.altitudes[5][3] << std::endl;
-				
-				std::cout << "MAX X: " << map_max_x << std::endl;
-				std::cout << "MIN X: " << map_min_x << std::endl;
-				std::cout << "MAX Z: " << map_max_z << std::endl;
-				std::cout << "MIN Z: " << map_min_z << std::endl;
-				*/
 				
                 terrain.height = map_max_x - map_min_x;
                 terrain.width = map_max_z - map_min_z;
-
-
-
-                /*
-                Vertex terrain_vertices[std::size(M_SlTerrain.vertices)];
-                std::cout << "M_SlTerrain.vertices[0].pos.y = " << M_SlTerrain.vertices[0].pos.y << std::endl;
-                std::cout << "M_SlTerrain.vertices.size() = " << M_SlTerrain.vertices.size() << std::endl;
-
-                for (int i = 0; i < 20; i++) {
-                        std::cout << i << " - x=" << M_SlTerrain.vertices[i].pos.x
-                                        << "  y=" << M_SlTerrain.vertices[i].pos.y
-                                        << "  z=" << M_SlTerrain.vertices[i].pos.z << std::endl;
-                }
-                */
-
-                /*
-                int i = 0;
-                for (auto & vertex : M_SlTerrain.vertices) {
-                        std::cout << i << " - y=" << M_SlTerrain.vertices[i].pos.y << std::endl;
-                        i++;
-                }
-                 */
 
 
                 M_SlSkyBox.init(this, "models/SkyBoxCube.obj");

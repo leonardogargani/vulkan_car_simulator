@@ -9,21 +9,12 @@
 
 
 struct Car {
-
         glm::vec3 pos;
         glm::vec3 angle;
         float lin_speed;
         float ang_speed;
         bool is_accelerating;
-        std::vector<glm::vec3> last_angles;
-
-        Car()
-        {
-                pos = glm::vec3(0.0f);
-                angle = glm::vec3(0.0f);
-                lin_speed = 0.0;
-                last_angles = std::vector<glm::vec3>(300, glm::vec3(0.0f));
-        }
+        std::vector<glm::vec3> last_angles{300, glm::vec3(0.0f)};
 };
 
 
@@ -31,9 +22,6 @@ float terrain_scale_factor = 10.0;
 
 float delta_time = 0.0;
 float logging_time = 0.0;
-
-int w_key_pressures = 0;
-int s_key_pressures = 0;
 
 enum CameraType { Normal, Distant, FirstPerson };
 CameraType camera_type = Normal;
@@ -120,35 +108,15 @@ void handle_key_presses() {
                 car.pos.z += sin(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
         }
         
-        /*********************************/
 
-        float car_pos_x;
-        
-        /*if (fabs(car.pos.x - 0.0f) < 0.0001) {
-        		car_pos_x = car.pos.x;
-        } else {
-        		car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0001f;
-        }*/
-        
-        car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0001f;
-        
-        float car_pos_z;
-        
-        /*if (fabs(car.pos.z - 0.0f) < 0.0001) {
-        		car_pos_z = car.pos.z;
-        } else {
-        		car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0f;
-        }*/
-        
-        car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0f;
-        
-        int x_index = round(car_pos_x * 109 / 100); // dove 109 è il numero di vertici --> usa define VERTECES ---- 100 è l'intervallo da -50 a 50 delle x.
-        int z_index = round(car_pos_z * 109 / 100);
+        float car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0;
+        float car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0;
+
+        // 109 = number of vertices  |  100 = size of the terrain before scaling
+        int x_index = round(car_pos_x * 109.0 / 100.0);
+        int z_index = round(car_pos_z * 109.0 / 100.0);
         
         car.pos.y = terrain.altitudes[x_index][z_index] * terrain_scale_factor;
-        
-        /*********************************/
-        
 
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
@@ -271,11 +239,9 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
-                std::cout << std::fixed << std::setprecision(6);
-                /*std::cout << "Car at:    pos.x=" << std::setw(7) << car.pos.x << "    |    pos.z=" << std::setw(7) << car.pos.z  << "    |    pos.y=" << std::setw(7) << car.pos.y
-                                << "    |    angle.y=" << std::setw(7) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;*/
-                std::cout << "Car at:    pos.x=" << car.pos.x << "    |    pos.z=" << car.pos.z  << "    |    pos.y=" << car.pos.y
-                                << "    |    angle.y=" << std::setw(7) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
+                std::cout << std::fixed << std::setprecision(3);
+                std::cout << "Car at:    pos.x=" << std::setw(8) << car.pos.x << "    |    pos.z=" << std::setw(8) << car.pos.z  << "    |    pos.y=" << std::setw(7) << car.pos.y
+                                << "    |    angle.y=" << std::setw(8) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
                 logging_time = 0.0;
         } else {
                 logging_time += delta_time;
