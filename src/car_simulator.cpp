@@ -42,12 +42,6 @@ struct UniformBufferObject {
         alignas(16) glm::mat4 model;
 };
 
-struct SkyBoxUniformBufferObject {
-		alignas(16) glm::mat4 mvpMat;
-		alignas(16) glm::mat4 mMat;
-		alignas(16) glm::mat4 nMat;
-};
-
 
 class MyProject : public BaseProject {
 protected:
@@ -214,6 +208,56 @@ protected:
 
 				/**/
 				
+				// Stampe varie per verificare che i valori fossero assegnati correttamente
+				/*
+				std::cout << "Y in (54,0) altitudes: " << terrain.altitudes[53][0] << std::endl;
+				std::cout << "Y in [5831] points: " << points[5830].y << std::endl;
+				
+				std::cout << "Y in (54,4) altitudes: " << terrain.altitudes[53][3] << std::endl;
+				std::cout << "Y in [5834] points: " << points[5833].y << std::endl;	
+				
+				std::cout << "Y in (0,0) altitudes: " << terrain.altitudes[0][0] << std::endl;
+				std::cout << "Y in [0] points: " << points[0].y << std::endl;
+				
+				std::cout << "Y in (25,0) altitudes: " << terrain.altitudes[24][0] << std::endl;
+				std::cout << "Y in [2641] points: " << points[2640].y << std::endl;
+				
+				std::cout << "Y in (0,0): " << terrain.altitudes[0][0] << std::endl;
+				std::cout << "Y in (0,1): " << terrain.altitudes[0][1] << std::endl;
+				std::cout << "Y in (0,2): " << terrain.altitudes[0][2] << std::endl;
+				std::cout << "Y in (0,3): " << terrain.altitudes[0][3] << std::endl;
+				
+				std::cout << "Y in (1,0): " << terrain.altitudes[1][0] << std::endl;
+				std::cout << "Y in (1,1): " << terrain.altitudes[1][1] << std::endl;
+				std::cout << "Y in (1,2): " << terrain.altitudes[1][2] << std::endl;
+				std::cout << "Y in (1,3): " << terrain.altitudes[1][3] << std::endl;
+				
+				std::cout << "Y in (2,0): " << terrain.altitudes[2][0] << std::endl;
+				std::cout << "Y in (2,1): " << terrain.altitudes[2][1] << std::endl;
+				std::cout << "Y in (2,2): " << terrain.altitudes[2][2] << std::endl;
+				std::cout << "Y in (2,3): " << terrain.altitudes[2][3] << std::endl;
+				
+				std::cout << "Y in (3,0): " << terrain.altitudes[3][0] << std::endl;
+				std::cout << "Y in (3,1): " << terrain.altitudes[3][1] << std::endl;
+				std::cout << "Y in (3,2): " << terrain.altitudes[3][2] << std::endl;
+				std::cout << "Y in (3,3): " << terrain.altitudes[3][3] << std::endl;
+				
+				std::cout << "Y in (4,0): " << terrain.altitudes[4][0] << std::endl;
+				std::cout << "Y in (4,1): " << terrain.altitudes[4][1] << std::endl;
+				std::cout << "Y in (4,2): " << terrain.altitudes[4][2] << std::endl;
+				std::cout << "Y in (4,3): " << terrain.altitudes[4][3] << std::endl;
+				
+				std::cout << "Y in (5,0): " << terrain.altitudes[5][0] << std::endl;
+				std::cout << "Y in (5,1): " << terrain.altitudes[5][1] << std::endl;
+				std::cout << "Y in (5,2): " << terrain.altitudes[5][2] << std::endl;
+				std::cout << "Y in (5,3): " << terrain.altitudes[5][3] << std::endl;
+				
+				std::cout << "MAX X: " << map_max_x << std::endl;
+				std::cout << "MIN X: " << map_min_x << std::endl;
+				std::cout << "MAX Z: " << map_max_z << std::endl;
+				std::cout << "MIN Z: " << map_min_z << std::endl;
+				*/
+				
                 terrain.height = map_max_x - map_min_x;
                 terrain.width = map_max_z - map_min_z;
 
@@ -243,7 +287,7 @@ protected:
                 M_SlSkyBox.init(this, "models/SkyBoxCube.obj");
                 T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
                 DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-								{0, UNIFORM, sizeof(UniformBufferObject)/*sizeof(SkyBoxUniformBufferObject)*/, nullptr},
+								{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
 								{1, TEXTURE, 0, &T_SlSkyBox}
                 });
 

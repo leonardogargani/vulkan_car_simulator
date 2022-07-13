@@ -121,30 +121,29 @@ void handle_key_presses() {
         }
         
         /*********************************/
-        
-        // NOTA: probabilmente il caso coordinata positiva e negativa può essere gestito nello stesso modo.
+
         float car_pos_x;
-        if(fabs(car.pos.x - 0.0f) < 0.0001) {
-        		car_pos_x = car.pos.x;
-        } else if(car.pos.x < 0.0f) {
-        		car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0f;
-        } else {
-        		car_pos_x = car.pos.x / terrain_scale_factor + 50.0f;
-        }
         
-        // NOTA: probabilmente il caso coordinata positiva e negativa può essere gestito nello stesso modo.
+        /*if (fabs(car.pos.x - 0.0f) < 0.0001) {
+        		car_pos_x = car.pos.x;
+        } else {
+        		car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0001f;
+        }*/
+        
+        car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0001f;
+        
         float car_pos_z;
-        if(fabs(car.pos.z - 0.0f) < 0.0001) {
+        
+        /*if (fabs(car.pos.z - 0.0f) < 0.0001) {
         		car_pos_z = car.pos.z;
-        } else if(car.pos.z < 0.0f){
-        		car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0f;
         } else {
         		car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0f;
-        }
+        }*/
+        
+        car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0f;
         
         int x_index = round(car_pos_x * 109 / 100); // dove 109 è il numero di vertici --> usa define VERTECES ---- 100 è l'intervallo da -50 a 50 delle x.
         int z_index = round(car_pos_z * 109 / 100);
-
         
         car.pos.y = terrain.altitudes[x_index][z_index] * terrain_scale_factor;
         
@@ -272,8 +271,10 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
-                std::cout << std::fixed << std::setprecision(2);
-                std::cout << "Car at:    pos.x=" << std::setw(7) << car.pos.x << "    |    pos.z=" << std::setw(7) << car.pos.z  << "    |    pos.y=" << std::setw(7) << car.pos.y
+                std::cout << std::fixed << std::setprecision(6);
+                /*std::cout << "Car at:    pos.x=" << std::setw(7) << car.pos.x << "    |    pos.z=" << std::setw(7) << car.pos.z  << "    |    pos.y=" << std::setw(7) << car.pos.y
+                                << "    |    angle.y=" << std::setw(7) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;*/
+                std::cout << "Car at:    pos.x=" << car.pos.x << "    |    pos.z=" << car.pos.z  << "    |    pos.y=" << car.pos.y
                                 << "    |    angle.y=" << std::setw(7) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
                 logging_time = 0.0;
         } else {
@@ -294,6 +295,6 @@ void updateUniformBuffer(uint32_t currentImage) {
         update_ubo_for_terrain(currentImage);
         update_ubo_for_skybox(currentImage);
 
-        log_car_pose(0.5);
+        log_car_pose(0.3);
 
 }
