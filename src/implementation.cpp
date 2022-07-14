@@ -42,6 +42,72 @@ float compute_elapsed_time() {
 }
 
 
+float compute_point_height(float x, float z) {
+
+        float x_point = (x / terrain_scale_factor) + 50.0;
+        float z_point = (z / terrain_scale_factor) + 50.0;
+
+        // 109 = number of vertices  |  100 = size of the terrain before scaling
+        float x_point_float_index = x_point * 109.0 / 100.0;
+        float z_point_float_index = z_point * 109.0 / 100.0;
+
+        /*
+         *      D -- C        (z) <---|
+         *      | \  |                |
+         *      A -- B                v
+         *                           (x)
+         *
+         */
+        int x_a_index = std::ceil(x_point_float_index);
+        int z_a_index = std::ceil(z_point_float_index);
+        int x_b_index = std::ceil(x_point_float_index);
+        int z_b_index = std::floor(z_point_float_index);
+        int x_c_index = std::floor(x_point_float_index);
+        int z_c_index = std::floor(z_point_float_index);
+        int x_d_index = std::floor(x_point_float_index);
+        int z_d_index = std::ceil(z_point_float_index);
+
+        float x_a = x_a_index * 100.0 / 109.0;
+        float x_b = x_b_index * 100.0 / 109.0;
+        float x_c = x_c_index * 100.0 / 109.0;
+        float x_d = x_d_index * 100.0 / 109.0;
+
+        float y_a = terrain.altitudes[x_a_index][z_a_index];
+        float y_b = terrain.altitudes[x_b_index][z_b_index];
+        float y_c = terrain.altitudes[x_c_index][z_c_index];
+        float y_d = terrain.altitudes[x_d_index][z_d_index];
+
+        float z_a = z_a_index * 100.0 / 109.0;
+        float z_b = z_b_index * 100.0 / 109.0;
+        float z_c = z_c_index * 100.0 / 109.0;
+        float z_d = z_d_index * 100.0 / 109.0;
+
+        // used to determine in which of the two triangles the point is in
+        float x_point_percentage_index = x_point_float_index - x_c_index;
+        float z_point_percentage_index = z_point_float_index - z_c_index;
+
+        float interpolated_height = 0.0;
+
+        // check which of the two triangles the point belongs to and act as a consequence
+        if (x_point_percentage_index < - z_point_percentage_index + 1) {
+                float det = (z_b - z_d) * (x_c - x_d) + (x_d - x_b) * (z_c - z_d);
+                float lambda_1 = ((z_b - z_d) * (x_point - x_d) + (x_d - x_b) * (z_point - z_d)) / det;
+                float lambda_2 = ((z_d - z_c) * (x_point - x_d) + (x_c - x_d) * (z_point - z_d)) / det;
+                float lambda_3 = 1.0f - lambda_1 - lambda_2;
+                interpolated_height = lambda_1 * y_c + lambda_2 * y_b + lambda_3 * y_d;
+        } else {
+                float det = (z_b - z_d) * (x_a - x_d) + (x_d - x_b) * (z_a - z_d);
+                float lambda_1 = ((z_b - z_d) * (x_point - x_d) + (x_d - x_b) * (z_point - z_d)) / det;
+                float lambda_2 = ((z_d - z_a) * (x_point - x_d) + (x_a - x_d) * (z_point - z_d)) / det;
+                float lambda_3 = 1.0f - lambda_1 - lambda_2;
+                interpolated_height = lambda_1 * y_a + lambda_2 * y_b + lambda_3 * y_d;
+        }
+
+        return interpolated_height * terrain_scale_factor;
+
+}
+
+
 void handle_key_presses() {
 
         // change velocity with a constant acceleration/deceleration profile
@@ -90,33 +156,27 @@ void handle_key_presses() {
         }
 
         // update car position (the car cannot escape from the map)
-        if (car.pos.x >= terrain.height * terrain_scale_factor / 2.0) {
+        // dividing by 2.03 instead of 2.0 in order to have a margin from the real border
+        if (car.pos.x >= terrain.height * terrain_scale_factor / 2.03) {
                 // step behind the map border so that movement is allowed again,
                 // otherwise the car gets stuck at that border
                 car.pos.x -= 0.1;
-        } else if (car.pos.x <= terrain.height * terrain_scale_factor / -2.0) {
+        } else if (car.pos.x <= terrain.height * terrain_scale_factor / -2.03) {
                 car.pos.x += 0.1;
         } else {
                 car.pos.x -= cos(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
         }
 
-        if (car.pos.z >= terrain.width * terrain_scale_factor / 2.0) {
+        if (car.pos.z >= terrain.width * terrain_scale_factor / 2.03) {
                 car.pos.z -= 0.1;
-        } else if (car.pos.z <= terrain.width * terrain_scale_factor / -2.0) {
+        } else if (car.pos.z <= terrain.width * terrain_scale_factor / -2.03) {
                 car.pos.z += 0.1;
         } else {
                 car.pos.z += sin(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
         }
-        
 
-        float car_pos_x = (car.pos.x / terrain_scale_factor) + 50.0;
-        float car_pos_z = (car.pos.z / terrain_scale_factor) + 50.0;
 
-        // 109 = number of vertices  |  100 = size of the terrain before scaling
-        int x_index = round(car_pos_x * 109.0 / 100.0);
-        int z_index = round(car_pos_z * 109.0 / 100.0);
-        
-        car.pos.y = terrain.altitudes[x_index][z_index] * terrain_scale_factor;
+        car.pos.y = compute_point_height(car.pos.x, car.pos.z);
 
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
