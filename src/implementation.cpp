@@ -1,11 +1,11 @@
 #include "car_simulator.hpp"
 
-#define LIN_ACCEL 20.0
-#define LIN_DECEL 80.0
+#define LIN_ACCEL 10.0
+#define LIN_DECEL 30.0
 
-#define ANG_SPEED 30.0
+#define ANG_SPEED 40.0
 
-#define TOP_LIN_SPEED 40.0
+#define TOP_LIN_SPEED 25.0
 
 
 struct Car {
@@ -15,6 +15,11 @@ struct Car {
         float ang_speed;
         bool is_accelerating;
         std::vector<glm::vec3> last_angles{300, glm::vec3(0.0f)};
+
+        glm::vec3 wheel_fl_pos;
+        glm::vec3 wheel_fr_pos;
+        glm::vec3 wheel_rl_pos;
+        glm::vec3 wheel_rr_pos;
 };
 
 
@@ -178,6 +183,27 @@ void handle_key_presses() {
 
         car.pos.y = compute_point_height(car.pos.x, car.pos.z);
 
+        car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
+        car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_fr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rl_pos.x = car.pos.x + (1.0814 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (1.0814 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rr_pos.x = car.pos.x + (1.0814 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (1.0814 * sin(glm::radians(-car.angle.y)));
+
+        car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
+        car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
+        car.wheel_rl_pos.y = compute_point_height(car.wheel_rl_pos.x, car.wheel_rl_pos.z);
+        car.wheel_rr_pos.y = compute_point_height(car.wheel_rr_pos.x, car.wheel_rr_pos.z);
+
+        // to compute car roll, make an average between front and rear wheels
+        float delta_y = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) + (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
+        // width between wheels
+        float delta_z = 1.0 - (-1.0);
+
+        car.angle.x = -atan(delta_y / delta_z) * (180.0 / 3.1415);
+
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
                 camera_type = Normal;
@@ -209,7 +235,8 @@ void update_ubo_for_car(uint32_t currentImage) {
         void* data;
 
         ubo.model = glm::translate(glm::mat4(1.0), car.pos)
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.y), glm::vec3(0,1,0));
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.y), glm::vec3(0, 1, 0))
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.x), glm::vec3(1, 0, 0));
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -300,8 +327,12 @@ void update_gubo_for_camera(uint32_t currentImage) {
 void log_car_pose(float logging_period) {
         if (logging_time > logging_period) {
                 std::cout << std::fixed << std::setprecision(3);
-                std::cout << "Car at:    pos.x=" << std::setw(8) << car.pos.x << "    |    pos.z=" << std::setw(8) << car.pos.z  << "    |    pos.y=" << std::setw(7) << car.pos.y
-                                << "    |    angle.y=" << std::setw(8) << car.angle.y << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
+                std::cout << "Car at:    x=" << std::setw(8) << car.pos.x
+                                << "    |    z=" << std::setw(8) << car.pos.z
+                                << "    |    y=" << std::setw(7) << car.pos.y
+                                << "    |    yaw=" << std::setw(8) << car.angle.y
+                                << "    |    roll=" << std::setw(8) << car.angle.x
+                                << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
                 logging_time = 0.0;
         } else {
                 logging_time += delta_time;
