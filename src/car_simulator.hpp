@@ -361,12 +361,15 @@ protected:
                 glfwInit();
 
                 glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-                glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
                 window = glfwCreateWindow(windowWidth, windowHeight, windowTitle.c_str(), nullptr, nullptr);
         }
 
         virtual void localInit() = 0;
+        
+        virtual void recreateSwapChainDSInit() = 0;
+        
+        virtual void recreateSwapChainPipelinesInit() = 0;
 
         // Lesson 12
         void initVulkan() {
@@ -770,6 +773,60 @@ protected:
                 swapChainImageFormat = surfaceFormat.format;
                 swapChainExtent = extent;
         }
+        
+        void cleanupSwapChain() {
+        
+            vkDestroyImageView(device, depthImageView, nullptr);
+            vkDestroyImage(device, depthImage, nullptr);
+            vkFreeMemory(device, depthImageMemory, nullptr);
+        
+            for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+        			vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
+    		}
+    		
+    		vkFreeCommandBuffers(device, commandPool,
+                                     static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+            
+            recreateSwapChainLocalCleanupPipelines();
+            
+            
+            vkDestroyRenderPass(device, renderPass, nullptr);
+
+			for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+					vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+			}
+
+    		vkDestroySwapchainKHR(device, swapChain, nullptr);
+
+			recreateSwapChainLocalCleanupDS();
+			
+    		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+
+		}
+        
+        void recreateSwapChain() {
+        
+		        int width = 0, height = 0;
+				glfwGetFramebufferSize(window, &width, &height);
+				while (width == 0 || height == 0) {
+						glfwGetFramebufferSize(window, &width, &height);
+						glfwWaitEvents();
+				}
+        		
+				vkDeviceWaitIdle(device);
+				
+				cleanupSwapChain();
+				
+				createSwapChain();
+				createImageViews();
+				createRenderPass();
+				recreateSwapChainPipelinesInit();
+				createDepthResources();		
+				createFramebuffers();	
+				createDescriptorPool();
+				recreateSwapChainDSInit();			
+				createCommandBuffers();
+		}
 
         // Lesson 14
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(
@@ -1400,7 +1457,14 @@ protected:
 
                 VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
                                                         imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
+                                                                                                
+                if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+						recreateSwapChain();
+						return;
+				} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+						throw std::runtime_error("Failed to acquire swap chain image!");
+				}
+				
                 if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
                         vkWaitForFences(device, 1, &imagesInFlight[imageIndex],
                                         VK_TRUE, UINT64_MAX);
@@ -1427,9 +1491,9 @@ protected:
 
                 if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,
                                   inFlightFences[currentFrame]) != VK_SUCCESS) {
-                        throw std::runtime_error("failed to submit draw command buffer!");
+                        throw std::runtime_error("Failed to submit draw command buffer!");
                 }
-
+                
                 VkPresentInfoKHR presentInfo{};
                 presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
                 presentInfo.waitSemaphoreCount = 1;
@@ -1442,6 +1506,13 @@ protected:
                 presentInfo.pResults = nullptr; // Optional
 
                 result = vkQueuePresentKHR(presentQueue, &presentInfo);
+                
+                if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+						recreateSwapChain();
+				} else if (result != VK_SUCCESS) {
+						throw std::runtime_error("Failed to present swap chain image!");
+				}
+
 
                 currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         }
@@ -1449,31 +1520,16 @@ protected:
         virtual void updateUniformBuffer(uint32_t currentImage) = 0;
 
         virtual void localCleanup() = 0;
+        
+        virtual void recreateSwapChainLocalCleanupPipelines() = 0;
+        
+        virtual void recreateSwapChainLocalCleanupDS() = 0;
 
         // All lessons
 
         void cleanup() {
-                vkDestroyImageView(device, depthImageView, nullptr);
-                vkDestroyImage(device, depthImage, nullptr);
-                vkFreeMemory(device, depthImageMemory, nullptr);
-
-                for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
-                        vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
-                }
-
-                vkFreeCommandBuffers(device, commandPool,
-                                     static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-
-                vkDestroyRenderPass(device, renderPass, nullptr);
-
-                for (size_t i = 0; i < swapChainImageViews.size(); i++){
-                        vkDestroyImageView(device, swapChainImageViews[i], nullptr);
-                }
-
-                vkDestroySwapchainKHR(device, swapChain, nullptr);
-
-                vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-
+        		
+        		cleanupSwapChain();
 
                 localCleanup();
 
@@ -1496,7 +1552,6 @@ protected:
 
                 glfwTerminate();
         }
-
 };
 
 

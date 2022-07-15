@@ -74,6 +74,34 @@ protected:
                 return ((p1.x < p2.x)
                         || ((fabs(p1.x - p2.x) < 0.0001) && (p1.z < p2.z)));
         }
+        
+		void recreateSwapChainDSInit() {
+		
+				DS_SlCar.init(this, &DSLobj, {
+				                        {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+				                        {1, TEXTURE, 0, &T_SlCar}
+		        });
+				        
+			   	DS_SlTerrain.init(this, &DSLobj, {
+                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                {1, TEXTURE, 0, &T_SlTerrain}
+                });
+
+                DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
+								{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+								{1, TEXTURE, 0, &T_SlSkyBox}
+                });
+
+                DS_global.init(this, &DSLglobal, {
+                                {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}
+                });
+	
+		}
+		
+		void recreateSwapChainPipelinesInit() {
+				P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
+		}
 
 
         void localInit() {
@@ -183,7 +211,8 @@ protected:
 
 
                 M_SlSkyBox.init(this, "models/SkyBoxCube.obj");
-                T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
+                //T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
+                T_SlSkyBox.init(this, {"sky/sky_universert.png", "sky/sky_univerself.png", "sky/sky_universeup.png", "sky/sky_universedn.png", "sky/sky_universeft.png", "sky/sky_universebk.png"});
                 DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
 								{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
 								{1, TEXTURE, 0, &T_SlSkyBox}
@@ -196,26 +225,30 @@ protected:
 
 
         void localCleanup() {
-                DS_SlCar.cleanup();
                 T_SlCar.cleanup();
                 M_SlCar.cleanup();
 
-                DS_SlTerrain.cleanup();
                 T_SlTerrain.cleanup();
                 M_SlTerrain.cleanup();    
                 
-                DS_SlSkyBox.cleanup();
                 T_SlSkyBox.cleanup();
                 M_SlSkyBox.cleanup();
-                
-                DS_global.cleanup();
-                
-                P_SkyBox.cleanup();
-                P1.cleanup();
                 
                 DSLglobal.cleanup();
                 DSLobj.cleanup();
                 DSLSkyBox.cleanup();
+        }
+
+        void recreateSwapChainLocalCleanupDS() {
+        		DS_SlCar.cleanup();
+        		DS_SlTerrain.cleanup();
+        		DS_SlSkyBox.cleanup();
+        		DS_global.cleanup();      		
+        }
+        
+        void recreateSwapChainLocalCleanupPipelines() {
+                P_SkyBox.cleanup();
+                P1.cleanup();
         }
 
         // Here it is the creation of the command buffer:
