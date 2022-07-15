@@ -3,14 +3,16 @@
 #define LIN_ACCEL 10.0
 #define LIN_DECEL 30.0
 
+#define PITCH_SLOWDOWN 0.3
+
 #define ANG_SPEED 40.0
 
-#define TOP_LIN_SPEED 25.0
+#define TOP_LIN_SPEED 20.0
 
 
 struct Car {
         glm::vec3 pos;
-        glm::vec3 angle;
+        glm::vec3 angle = glm::vec3(1.0);
         float lin_speed;
         float ang_speed;
         bool is_accelerating;
@@ -115,11 +117,20 @@ float compute_point_height(float x, float z) {
 
 void handle_key_presses() {
 
+        // switch to the selected camera
+        if (glfwGetKey(window, GLFW_KEY_V)) {
+                camera_type = Normal;
+        } else if (glfwGetKey(window, GLFW_KEY_B)) {
+                camera_type = Distant;
+        } else if (glfwGetKey(window, GLFW_KEY_N)) {
+                camera_type = FirstPerson;
+        }
+
         // change velocity with a constant acceleration/deceleration profile
         if (glfwGetKey(window, GLFW_KEY_W)) {
-                car.lin_speed = std::min(car.lin_speed + LIN_ACCEL * delta_time, TOP_LIN_SPEED);
+                car.lin_speed = std::min(car.lin_speed + LIN_ACCEL * delta_time, TOP_LIN_SPEED - (-car.angle.z * PITCH_SLOWDOWN));
         } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                car.lin_speed = std::max(car.lin_speed - LIN_ACCEL * delta_time, -TOP_LIN_SPEED);
+                car.lin_speed = std::max(car.lin_speed - LIN_ACCEL * delta_time, -(TOP_LIN_SPEED - (-car.angle.z * PITCH_SLOWDOWN)));
         } else {
                 // decelerate until 0
                 if (car.lin_speed > 0.1) {
@@ -146,6 +157,7 @@ void handle_key_presses() {
                 }
         }
 
+        // reset to the initial position
         if (glfwGetKey(window, GLFW_KEY_R)) {
                 car.pos = glm::vec3(0.0f);
                 car.angle = glm::vec3(0.0f);
@@ -160,7 +172,7 @@ void handle_key_presses() {
                 car.angle.y += 360.0;
         }
 
-        // update car position (the car cannot escape from the map)
+        // update car position (the car cannot escape from the map),
         // dividing by 2.03 instead of 2.0 in order to have a margin from the real border
         if (car.pos.x >= terrain.height * terrain_scale_factor / 2.03) {
                 // step behind the map border so that movement is allowed again,
@@ -180,9 +192,10 @@ void handle_key_presses() {
                 car.pos.z += sin(glm::radians(car.angle.y)) * (car.lin_speed * delta_time);
         }
 
-
+        // update car height
         car.pos.y = compute_point_height(car.pos.x, car.pos.z);
 
+        // compute new position of the wheels
         car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
         car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
         car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
@@ -192,6 +205,7 @@ void handle_key_presses() {
         car.wheel_rr_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
         car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (2.4023 * sin(glm::radians(-car.angle.y)));
 
+        // compute the height of the wheels
         car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
         car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
         car.wheel_rl_pos.y = compute_point_height(car.wheel_rl_pos.x, car.wheel_rl_pos.z);
@@ -211,14 +225,6 @@ void handle_key_presses() {
 
         car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
 
-
-        if (glfwGetKey(window, GLFW_KEY_V)) {
-                camera_type = Normal;
-        } else if (glfwGetKey(window, GLFW_KEY_B)) {
-                camera_type = Distant;
-        } else if (glfwGetKey(window, GLFW_KEY_N)) {
-                camera_type = FirstPerson;
-        }
 }
 
 
