@@ -30,6 +30,9 @@ float terrain_scale_factor = 10.0;
 float delta_time = 0.0;
 float logging_time = 0.0;
 
+int fps_sum = 0;
+int fps_count = 0;
+
 enum CameraType { Normal, Distant, FirstPerson };
 CameraType camera_type = Normal;
 
@@ -130,7 +133,7 @@ void handle_key_presses() {
         if (glfwGetKey(window, GLFW_KEY_W)) {
                 car.lin_speed = std::min(car.lin_speed + LIN_ACCEL * delta_time, TOP_LIN_SPEED - (-car.angle.z * PITCH_SLOWDOWN));
         } else if (glfwGetKey(window, GLFW_KEY_S)) {
-                car.lin_speed = std::max(car.lin_speed - LIN_ACCEL * delta_time, -(TOP_LIN_SPEED - (-car.angle.z * PITCH_SLOWDOWN)));
+                car.lin_speed = std::max(car.lin_speed - LIN_ACCEL * delta_time, -(TOP_LIN_SPEED + (-car.angle.z * PITCH_SLOWDOWN)));
         } else {
                 // decelerate until 0
                 if (car.lin_speed > 0.1) {
@@ -195,35 +198,51 @@ void handle_key_presses() {
         // update car height
         car.pos.y = compute_point_height(car.pos.x, car.pos.z);
 
-        // compute new position of the wheels
-        car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
-        car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
-        car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
-        car.wheel_fr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rl_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (2.4023 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rr_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (2.4023 * sin(glm::radians(-car.angle.y)));
+        // compute real pitch and roll only if the view is not in first person
+        if (camera_type == FirstPerson) {
+                car.angle.x = 0.0;
+                car.angle.z = 0.0;
+        } else {
+                // compute new position of the wheels
+                car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
+                                     (1.0 * sin(glm::radians(-car.angle.y)));
+                car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) +
+                                     (-1.0814 * sin(glm::radians(-car.angle.y)));
+                car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
+                                     (-1.0 * sin(glm::radians(-car.angle.y)));
+                car.wheel_fr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) +
+                                     (-1.0814 * sin(glm::radians(-car.angle.y)));
+                car.wheel_rl_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) -
+                                     (1.0 * sin(glm::radians(-car.angle.y)));
+                car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) +
+                                     (2.4023 * sin(glm::radians(-car.angle.y)));
+                car.wheel_rr_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) -
+                                     (-1.0 * sin(glm::radians(-car.angle.y)));
+                car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) +
+                                     (2.4023 * sin(glm::radians(-car.angle.y)));
 
-        // compute the height of the wheels
-        car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
-        car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
-        car.wheel_rl_pos.y = compute_point_height(car.wheel_rl_pos.x, car.wheel_rl_pos.z);
-        car.wheel_rr_pos.y = compute_point_height(car.wheel_rr_pos.x, car.wheel_rr_pos.z);
+                // compute the height of the wheels
+                car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
+                car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
+                car.wheel_rl_pos.y = compute_point_height(car.wheel_rl_pos.x, car.wheel_rl_pos.z);
+                car.wheel_rr_pos.y = compute_point_height(car.wheel_rr_pos.x, car.wheel_rr_pos.z);
 
-        // to compute car roll, make an average between front and rear wheels
-        float delta_y_front_rear = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) + (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
-        // width between wheels
-        float delta_z_front_rear = 1.0 - (-1.0);
+                // to compute car roll, make an average between front and rear wheels
+                float delta_y_front_rear = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) +
+                                            (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
+                // width between wheels
+                float delta_z_front_rear = 1.0 - (-1.0);
 
-        car.angle.x = -glm::degrees(atan(delta_y_front_rear / delta_z_front_rear));
+                car.angle.x = -glm::degrees(atan(delta_y_front_rear / delta_z_front_rear));
 
-        // to compute car pitch, make an average between front and rear wheels
-        float delta_y_left_right = ((car.wheel_fl_pos.y - car.wheel_rl_pos.y) + (car.wheel_fr_pos.y - car.wheel_rr_pos.y)) / 2.0;
-        // distance between wheels front and rear wheels
-        float delta_x_left_right = 2.4023 - (-1.0814);
+                // to compute car pitch, make an average between front and rear wheels
+                float delta_y_left_right = ((car.wheel_fl_pos.y - car.wheel_rl_pos.y) +
+                                            (car.wheel_fr_pos.y - car.wheel_rr_pos.y)) / 2.0;
+                // distance between wheels front and rear wheels
+                float delta_x_left_right = 2.4023 - (-1.0814);
 
-        car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
+                car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
+        }
 
 }
 
@@ -285,7 +304,7 @@ void update_gubo_for_camera(uint32_t currentImage) {
         {
                 case Normal:
                         field_of_view = 45.0;
-                        camera_offset = glm::vec3(10.0f, 3.0f, 0.0f);
+                        camera_offset = glm::vec3(15.0f, 4.0f, 0.0f);
                         break;
                 case Distant:
                         field_of_view = 90.0;
@@ -311,11 +330,13 @@ void update_gubo_for_camera(uint32_t currentImage) {
                 glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car.angle.y / 2.0) - camera_offset_angle),
                                                              0.0,
                                                              corda * cos(glm::radians(car.angle.y / 2.0) - camera_offset_angle));
+
                 gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
                                         glm::vec3(car.pos.x - 100 * cos(glm::radians(car.angle.y)),
-                                                  0.0f,
+                                                  car.pos.y,
                                                   car.pos.z + 100 * sin(glm::radians(car.angle.y))),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
+
         } else {
                 // handle the "delay" of the camera
                 glm::vec3 car_angle = car.last_angles.front();
@@ -338,7 +359,13 @@ void update_gubo_for_camera(uint32_t currentImage) {
 }
 
 
-void log_car_pose(float logging_period) {
+void compute_fps() {
+        fps_sum += 1 / delta_time;
+        fps_count++;
+}
+
+
+void log_info(float logging_period) {
         if (logging_time > logging_period) {
                 std::cout << std::fixed << std::setprecision(3);
                 std::cout << "Car at:    x=" << std::setw(8) << car.pos.x
@@ -347,10 +374,14 @@ void log_car_pose(float logging_period) {
                                 << "    |    yaw=" << std::setw(8) << car.angle.y
                                 << "    |    pitch=" << std::setw(8) << car.angle.z
                                 << "    |    roll=" << std::setw(8) << car.angle.x
-                                << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
+                                << "    |    speed=" << std::setw(7) << car.lin_speed
+                                << "         [" << std::setw(4) << (fps_sum / fps_count) << " FPS]" << std::endl;
+                fps_sum = 0;
+                fps_count = 0;
                 logging_time = 0.0;
         } else {
                 logging_time += delta_time;
+
         }
 }
 
@@ -367,6 +398,7 @@ void updateUniformBuffer(uint32_t currentImage) {
         update_ubo_for_terrain(currentImage);
         update_ubo_for_skybox(currentImage);
 
-        log_car_pose(0.3);
+        compute_fps();
+        log_info(0.3);
 
 }
