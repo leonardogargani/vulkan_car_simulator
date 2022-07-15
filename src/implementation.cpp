@@ -187,10 +187,10 @@ void handle_key_presses() {
         car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
         car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
         car.wheel_fr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (-1.0814 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rl_pos.x = car.pos.x + (1.0814 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (1.0814 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rr_pos.x = car.pos.x + (1.0814 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
-        car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (1.0814 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rl_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) - (1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) + (2.4023 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rr_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) - (-1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) + (2.4023 * sin(glm::radians(-car.angle.y)));
 
         car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
         car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
@@ -198,11 +198,18 @@ void handle_key_presses() {
         car.wheel_rr_pos.y = compute_point_height(car.wheel_rr_pos.x, car.wheel_rr_pos.z);
 
         // to compute car roll, make an average between front and rear wheels
-        float delta_y = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) + (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
+        float delta_y_front_rear = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) + (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
         // width between wheels
-        float delta_z = 1.0 - (-1.0);
+        float delta_z_front_rear = 1.0 - (-1.0);
 
-        car.angle.x = -atan(delta_y / delta_z) * (180.0 / 3.1415);
+        car.angle.x = -glm::degrees(atan(delta_y_front_rear / delta_z_front_rear));
+
+        // to compute car pitch, make an average between front and rear wheels
+        float delta_y_left_right = ((car.wheel_fl_pos.y - car.wheel_rl_pos.y) + (car.wheel_fr_pos.y - car.wheel_rr_pos.y)) / 2.0;
+        // distance between wheels front and rear wheels
+        float delta_x_left_right = 2.4023 - (-1.0814);
+
+        car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
 
 
         if (glfwGetKey(window, GLFW_KEY_V)) {
@@ -236,7 +243,8 @@ void update_ubo_for_car(uint32_t currentImage) {
 
         ubo.model = glm::translate(glm::mat4(1.0), car.pos)
                     * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.y), glm::vec3(0, 1, 0))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.x), glm::vec3(1, 0, 0));
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.x), glm::vec3(1, 0, 0))
+                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.z), glm::vec3(0, 0, 1));
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -331,6 +339,7 @@ void log_car_pose(float logging_period) {
                                 << "    |    z=" << std::setw(8) << car.pos.z
                                 << "    |    y=" << std::setw(7) << car.pos.y
                                 << "    |    yaw=" << std::setw(8) << car.angle.y
+                                << "    |    pitch=" << std::setw(8) << car.angle.z
                                 << "    |    roll=" << std::setw(8) << car.angle.x
                                 << "    |    speed=" << std::setw(6) << car.lin_speed << std::endl;
                 logging_time = 0.0;
