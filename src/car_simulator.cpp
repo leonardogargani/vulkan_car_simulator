@@ -38,8 +38,9 @@ protected:
         DescriptorSetLayout DSLSkyBox;
 
         // Pipelines (Shader couples)
-        Pipeline P1;
+        Pipeline P_Car;
         Pipeline P_SkyBox;
+        Pipeline P_Terrain;
 
         // Models, textures and Descriptors (values assigned to the uniforms)
         Model M_SlCar;
@@ -95,7 +96,8 @@ protected:
 		}
 		
 		void recreateSwapChainPipelinesInit() {
-                        P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                        P_Car.init(this, "shaders/carVert.spv", "shaders/carFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                        P_Terrain.init(this, "shaders/terrainVert.spv", "shaders/terrainFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
                         P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
 		}
 
@@ -119,7 +121,8 @@ protected:
 
                 // Pipelines (Shader couples)
                 // The last array is a vector of pointer to the layouts of the sets that will be used in the pipeline
-                P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                P_Car.init(this, "shaders/carVert.spv", "shaders/carFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                P_Terrain.init(this, "shaders/terrainVert.spv", "shaders/terrainFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
                 P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
 
                 // Models, textures and Descriptors (values assigned to the uniforms)
@@ -234,17 +237,18 @@ protected:
         
         void recreateSwapChainLocalCleanupPipelines() {
                 P_SkyBox.cleanup();
-                P1.cleanup();
+                P_Car.cleanup();
+                P_Terrain.cleanup();
         }
 
         // Here it is the creation of the command buffer:
         // you send to the GPU all the objects you want to draw, with their buffers and textures.
         void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P1.graphicsPipeline);
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_Car.graphicsPipeline);
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage],
+                                        P_Car.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage],
                                         0, nullptr);
 
                 VkBuffer vertexBuffers[] = {M_SlCar.vertexBuffer};
@@ -258,19 +262,24 @@ protected:
                 // property .descriptorSets of a descriptor set contains its elements.
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlCar.descriptorSets[currentImage],
+                                        P_Car.pipelineLayout, 1, 1, &DS_SlCar.descriptorSets[currentImage],
                                         0, nullptr);
 
                 // property .indices.size() of models, contains the number of triangles * 3 of the mesh.
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlCar.indices.size()), 1, 0, 0, 0);
 
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_Terrain.graphicsPipeline);
                 VkBuffer vertexBuffers2[] = {M_SlTerrain.vertexBuffer};
                 VkDeviceSize offsets2[] = {0};
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets2);
                 vkCmdBindIndexBuffer(commandBuffer, M_SlTerrain.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        P1.pipelineLayout, 1, 1, &DS_SlTerrain.descriptorSets[currentImage],
+                                        P_Terrain.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage],
+                                        0, nullptr);
+                vkCmdBindDescriptorSets(commandBuffer,
+                                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        P_Terrain.pipelineLayout, 1, 1, &DS_SlTerrain.descriptorSets[currentImage],
                                         0, nullptr);
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlTerrain.indices.size()), 1, 0, 0, 0);
                                  

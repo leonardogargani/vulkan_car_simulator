@@ -420,7 +420,7 @@ void updateUniformBuffer(uint32_t currentImage) {
         update_ubo_for_terrain(currentImage);
         update_ubo_for_skybox(currentImage);
 
-        compute_fps();
-        log_info(0.3);
+        //compute_fps();
+        //log_info(0.3);
 
 }
