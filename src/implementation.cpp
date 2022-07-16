@@ -2,11 +2,8 @@
 
 #define LIN_ACCEL 10.0
 #define LIN_DECEL 30.0
-
 #define PITCH_SLOWDOWN 0.3
-
 #define ANG_SPEED 40.0
-
 #define TOP_LIN_SPEED 20.0
 
 
@@ -15,7 +12,6 @@ struct Car {
         glm::vec3 angle = glm::vec3(1.0);
         float lin_speed;
         float ang_speed;
-        bool is_accelerating;
         std::vector<glm::vec3> last_angles{300, glm::vec3(0.0f)};
 
         glm::vec3 wheel_fl_pos;
@@ -52,6 +48,7 @@ float compute_elapsed_time() {
 }
 
 
+// Compute the height of a point in the terrain, given its coordinates in the xz-plane
 float compute_point_height(float x, float z) {
 
         float x_point = (x / terrain_scale_factor) + 50.0;
@@ -338,16 +335,29 @@ void update_gubo_for_camera(uint32_t currentImage) {
                                         glm::vec3(0.0f, 1.0f, 0.0f));
 
         } else {
-                // handle the "delay" of the camera
-                glm::vec3 car_angle = car.last_angles.front();
-                car.last_angles.erase(car.last_angles.begin());
-                car.last_angles.push_back(car.angle);
+                glm::vec3 car_angle;
+
+                // handle the "delay" of the camera in a way so that it is independent from
+                // the performance of the pc (discard values to display if delta_time is high)
+                for (float i = 0.0; i < delta_time; i += 0.001) {
+                        car_angle = car.last_angles.front();
+                        car.last_angles.erase(car.last_angles.begin());
+                        car.last_angles.push_back(car.angle);
+                }
+
                 float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle.y / 2.0));
 
                 glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle.y / 2.0) - camera_offset_angle),
                                                              0.0,
                                                              corda * cos(glm::radians(car_angle.y / 2.0) - camera_offset_angle));
-                gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
+
+                glm::vec3 camera_position = car.pos + camera_offset - camera_offset_rotation;
+
+                // since the camera is following the car, never allow it to be under the terrain
+                // (and keep a margin of 2,0 above the terrain)
+                camera_position.y = std::max(camera_position.y, compute_point_height(camera_position.x, camera_position.z) + 2.0f);
+
+                gubo.view = glm::lookAt(camera_position,
                                         car.pos,
                                         glm::vec3(0.0f, 1.0f, 0.0f));
         }

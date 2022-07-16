@@ -77,30 +77,26 @@ protected:
         
 		void recreateSwapChainDSInit() {
 		
-				DS_SlCar.init(this, &DSLobj, {
-				                        {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-				                        {1, TEXTURE, 0, &T_SlCar}
-		        });
+                        DS_SlCar.init(this, &DSLobj, {
+                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {1, TEXTURE, 0, &T_SlCar}});
 				        
-			   	DS_SlTerrain.init(this, &DSLobj, {
-                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlTerrain}
-                });
+                        DS_SlTerrain.init(this, &DSLobj, {
+                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {1, TEXTURE, 0, &T_SlTerrain}});
 
-                DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-								{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-								{1, TEXTURE, 0, &T_SlSkyBox}
-                });
+                        DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
+                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {1, TEXTURE, 0, &T_SlSkyBox}});
 
-                DS_global.init(this, &DSLglobal, {
-                                {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}
-                });
+                        DS_global.init(this, &DSLglobal, {
+                                                {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}});
 	
 		}
 		
 		void recreateSwapChainPipelinesInit() {
-				P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
-                P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
+                        P1.init(this, "shaders/vert.spv", "shaders/frag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                        P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
 		}
 
 
@@ -112,17 +108,14 @@ protected:
                                 // second element : the time of element (buffer or texture)
                                 // third  element : the pipeline stage where it will be used
                                 {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
-                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
-                });
+                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}});
 
                 DSLglobal.init(this, {
-                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
-                });
+                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},});
                 
                 DSLSkyBox.init(this, {
-                				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
-                				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
-                });
+                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}});
 
                 // Pipelines (Shader couples)
                 // The last array is a vector of pointer to the layouts of the sets that will be used in the pipeline
@@ -138,15 +131,13 @@ protected:
                                 // - third  element : only for UNIFORMs, the size of the corresponding C++ object
                                 // - fourth element : only for TEXTUREs, the pointer to the corresponding texture object
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlCar}
-                });
+                                {1, TEXTURE, 0, &T_SlCar}});
 
                 M_SlTerrain.init(this, "models/Terrain.obj");
-                T_SlTerrain.init(this, "textures/SolidGreen.png");
+                T_SlTerrain.init(this, "textures/Terrain.png");
                 DS_SlTerrain.init(this, &DSLobj, {
                                 {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlTerrain}
-                });
+                                {1, TEXTURE, 0, &T_SlTerrain}});
 
 
                 float map_min_x = 0.0;
@@ -154,8 +145,7 @@ protected:
                 float map_min_z = 0.0;
                 float map_max_z = 0.0;
 
-                std::vector<Point> points;
-
+                std::vector<Point> terrain_points;
 
                 for (int i = 0; i < std::size(M_SlTerrain.vertices); i++) {
 
@@ -170,33 +160,31 @@ protected:
                         } else if (M_SlTerrain.vertices[i].pos.z > map_max_z) {
                                 map_max_z = M_SlTerrain.vertices[i].pos.z;
                         }
-                        
 
                         // Store the unique values of all the vertices, discarding the repeated ones.
                         bool is_point_present = false;
-                        for (int j = 0; j < points.size(); j++) {
-                                if (points[j].x == M_SlTerrain.vertices[i].pos.x && points[j].z == M_SlTerrain.vertices[i].pos.z) {
+                        for (int j = 0; j < terrain_points.size(); j++) {
+                                if (terrain_points[j].x == M_SlTerrain.vertices[i].pos.x && terrain_points[j].z == M_SlTerrain.vertices[i].pos.z) {
                                         is_point_present = true;
                                 }
                         }
                         
                         if (!is_point_present){
                         	Point point = {M_SlTerrain.vertices[i].pos.x, M_SlTerrain.vertices[i].pos.y, M_SlTerrain.vertices[i].pos.z};
-                        	points.push_back(point);
+                                terrain_points.push_back(point);
                         }
 
                 }
 
                 // Reorder Points vector using comparePoints (declared above) static function.
-                sort(points.begin(), points.end(), isP1beforeP2);
+                sort(terrain_points.begin(), terrain_points.end(), isP1beforeP2);
 
                 int col = 0;
                 int row = 0;
 
                 // Fill terrain.altitudes vector.
-                for (int i = 0; i < points.size(); i++) {
-            		terrain.altitudes[col][row] = points[i].y;
-            		
+                for (int i = 0; i < terrain_points.size(); i++) {
+            		terrain.altitudes[col][row] = terrain_points[i].y;
             		if (row < VERTICES_NUMBER - 1) {
             			row++;
             		} else {
@@ -214,13 +202,11 @@ protected:
                 //T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
                 T_SlSkyBox.init(this, {"sky/sky_universert.png", "sky/sky_univerself.png", "sky/sky_universeup.png", "sky/sky_universedn.png", "sky/sky_universeft.png", "sky/sky_universebk.png"});
                 DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-								{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-								{1, TEXTURE, 0, &T_SlSkyBox}
-                });
+                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {1, TEXTURE, 0, &T_SlSkyBox}});
 
                 DS_global.init(this, &DSLglobal, {
-                                {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}
-                });
+                                                {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}});
         }
 
 
@@ -255,8 +241,7 @@ protected:
         // you send to the GPU all the objects you want to draw, with their buffers and textures.
         void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  P1.graphicsPipeline);
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P1.graphicsPipeline);
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         P1.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage],
@@ -267,8 +252,7 @@ protected:
                 VkDeviceSize offsets[] = {0};
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
                 // property .indexBuffer of models, contains the VkBuffer handle to its index buffer
-                vkCmdBindIndexBuffer(commandBuffer, M_SlCar.indexBuffer, 0,
-                                     VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(commandBuffer, M_SlCar.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
                 // property .pipelineLayout of a pipeline contains its layout.
                 // property .descriptorSets of a descriptor set contains its elements.
@@ -278,34 +262,33 @@ protected:
                                         0, nullptr);
 
                 // property .indices.size() of models, contains the number of triangles * 3 of the mesh.
-                vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlCar.indices.size()), 1, 0, 0, 0);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlCar.indices.size()), 1, 0, 0, 0);
 
                 VkBuffer vertexBuffers2[] = {M_SlTerrain.vertexBuffer};
                 VkDeviceSize offsets2[] = {0};
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets2);
-                vkCmdBindIndexBuffer(commandBuffer, M_SlTerrain.indexBuffer, 0,
-                                     VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(commandBuffer, M_SlTerrain.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdBindDescriptorSets(commandBuffer,
                                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         P1.pipelineLayout, 1, 1, &DS_SlTerrain.descriptorSets[currentImage],
                                         0, nullptr);
-                vkCmdDrawIndexed(commandBuffer,
-                                 static_cast<uint32_t>(M_SlTerrain.indices.size()), 1, 0, 0, 0);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlTerrain.indices.size()), 1, 0, 0, 0);
                                  
                                  
                                  
                 vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_SkyBox.graphicsPipeline);
-				VkBuffer vertexBuffers3[] = {M_SlSkyBox.vertexBuffer};
-				VkDeviceSize offsets3[] = {0};
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers3, offsets3);
-				vkCmdBindIndexBuffer(commandBuffer, M_SlSkyBox.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-				
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_SkyBox.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage], 0, nullptr);
-				
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, P_SkyBox.pipelineLayout, 1, 1, &DS_SlSkyBox.descriptorSets[currentImage], 0, nullptr);			
-								
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlSkyBox.indices.size()), 1, 0, 0, 0);
+                VkBuffer vertexBuffers3[] = {M_SlSkyBox.vertexBuffer};
+                VkDeviceSize offsets3[] = {0};
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers3, offsets3);
+                vkCmdBindIndexBuffer(commandBuffer, M_SlSkyBox.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindDescriptorSets(commandBuffer,
+                                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        P_SkyBox.pipelineLayout, 0, 1, &DS_global.descriptorSets[currentImage],
+                                        0, nullptr);
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        P_SkyBox.pipelineLayout, 1, 1, &DS_SlSkyBox.descriptorSets[currentImage],
+                                        0, nullptr);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlSkyBox.indices.size()), 1, 0, 0, 0);
 				
 
         }
