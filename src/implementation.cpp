@@ -29,7 +29,7 @@ float logging_time = 0.0;
 int fps_sum = 0;
 int fps_count = 0;
 
-enum CameraType { Normal, Distant, FirstPerson };
+enum CameraType { Normal, Distant, FirstPerson, MiniMap };
 CameraType camera_type = Normal;
 
 
@@ -124,6 +124,8 @@ void handle_key_presses() {
                 camera_type = Distant;
         } else if (glfwGetKey(window, GLFW_KEY_N)) {
                 camera_type = FirstPerson;
+        } else if (glfwGetKey(window, GLFW_KEY_M)) {
+                camera_type = MiniMap;
         }
 
         // change velocity with a constant acceleration/deceleration profile
@@ -195,7 +197,7 @@ void handle_key_presses() {
         // update car height
         car.pos.y = compute_point_height(car.pos.x, car.pos.z);
 
-        // compute real pitch and roll only if the view is not in first person
+        // compute real pitch and roll only if useful
         if (camera_type == FirstPerson) {
                 car.angle.x = 0.0;
                 car.angle.z = 0.0;
@@ -300,8 +302,8 @@ void update_gubo_for_camera(uint32_t currentImage) {
         switch(camera_type)
         {
                 case Normal:
-                        field_of_view = 45.0;
-                        camera_offset = glm::vec3(15.0f, 4.0f, 0.0f);
+                        field_of_view = 60.0;
+                        camera_offset = glm::vec3(12.0f, 3.0f, 0.0f);
                         break;
                 case Distant:
                         field_of_view = 90.0;
@@ -310,6 +312,9 @@ void update_gubo_for_camera(uint32_t currentImage) {
                 case FirstPerson:
                         field_of_view = 90.0;
                         camera_offset = glm::vec3(0.01f, 1.7f, 0.5f);
+                        break;
+                case MiniMap:
+                        field_of_view = 45.0;
                         break;
         }
 
@@ -329,10 +334,17 @@ void update_gubo_for_camera(uint32_t currentImage) {
                                                              corda * cos(glm::radians(car.angle.y / 2.0) - camera_offset_angle));
 
                 gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
-                                        glm::vec3(car.pos.x - 100 * cos(glm::radians(car.angle.y)),
-                                                  car.pos.y,
-                                                  car.pos.z + 100 * sin(glm::radians(car.angle.y))),
+                                        glm::vec3(car.pos.x - 100.0 * cos(glm::radians(car.angle.y)),
+                                                  car.pos.y + 4.0,
+                                                  car.pos.z + 100.0 * sin(glm::radians(car.angle.y))),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
+
+        } else if (camera_type == MiniMap) {
+
+                gubo.view = glm::rotate(glm::mat4(1.0), glm::radians(135.0f), glm::vec3(0.0f, 0.0f, 1.0f))
+                                * glm::lookAt(glm::vec3(car.pos.x, 50.0f, car.pos.z),
+                                                        car.pos + glm::vec3(0.1f, 0.1f, 0.1f),
+                                                        glm::vec3(0.0f, 1.0f, 0.0f));
 
         } else {
                 glm::vec3 car_angle;
@@ -358,7 +370,7 @@ void update_gubo_for_camera(uint32_t currentImage) {
                 camera_position.y = std::max(camera_position.y, compute_point_height(camera_position.x, camera_position.z) + 2.0f);
 
                 gubo.view = glm::lookAt(camera_position,
-                                        car.pos,
+                                        glm::vec3(car.pos.x, car.pos.y + 2.0f, car.pos.z),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
         }
 
