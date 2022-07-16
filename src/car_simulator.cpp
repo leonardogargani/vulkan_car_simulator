@@ -28,6 +28,18 @@ struct UniformBufferObject {
         alignas(16) glm::mat4 model;
 };
 
+struct carUniformBufferObject {
+        // matrix containing the rotation of the model
+        alignas(16) glm::mat4 model;
+        alignas(16) glm::vec4 selector;
+};
+
+struct terrainUniformBufferObject {
+        // matrix containing the rotation of the model
+        alignas(16) glm::mat4 model;
+        alignas(16) glm::vec4 selector;
+};
+
 
 class MyProject : public BaseProject {
 protected:
@@ -79,11 +91,11 @@ protected:
 		void recreateSwapChainDSInit() {
 		
                         DS_SlCar.init(this, &DSLobj, {
-                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {0, UNIFORM, sizeof(carUniformBufferObject), nullptr},
                                                 {1, TEXTURE, 0, &T_SlCar}});
 				        
                         DS_SlTerrain.init(this, &DSLobj, {
-                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {0, UNIFORM, sizeof(terrainUniformBufferObject), nullptr},
                                                 {1, TEXTURE, 0, &T_SlTerrain}});
 
                         DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
@@ -109,7 +121,7 @@ protected:
                                 // first  element : the binding number
                                 // second element : the time of element (buffer or texture)
                                 // third  element : the pipeline stage where it will be used
-                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
                                 {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}});
 
                 DSLglobal.init(this, {
@@ -133,13 +145,13 @@ protected:
                                 // - second element : UNIFORM or TEXTURE (an enum) depending on the type
                                 // - third  element : only for UNIFORMs, the size of the corresponding C++ object
                                 // - fourth element : only for TEXTUREs, the pointer to the corresponding texture object
-                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                {0, UNIFORM, sizeof(carUniformBufferObject), nullptr},
                                 {1, TEXTURE, 0, &T_SlCar}});
 
                 M_SlTerrain.init(this, "models/Terrain.obj");
                 T_SlTerrain.init(this, "textures/Terrain.png");
                 DS_SlTerrain.init(this, &DSLobj, {
-                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                {0, UNIFORM, sizeof(terrainUniformBufferObject), nullptr},
                                 {1, TEXTURE, 0, &T_SlTerrain}});
 
 

@@ -29,6 +29,8 @@ float logging_time = 0.0;
 int fps_sum = 0;
 int fps_count = 0;
 
+glm::vec4 selector;
+
 enum CameraType { Normal, Distant, FirstPerson, MiniMap };
 CameraType camera_type = Normal;
 
@@ -126,6 +128,12 @@ void handle_key_presses() {
                 camera_type = FirstPerson;
         } else if (glfwGetKey(window, GLFW_KEY_M)) {
                 camera_type = MiniMap;
+        }
+        
+        if (glfwGetKey(window, GLFW_KEY_1)) {
+        		selector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+        } else if (glfwGetKey(window, GLFW_KEY_2)) {
+        		selector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
         }
 
         // change velocity with a constant acceleration/deceleration profile
@@ -246,32 +254,34 @@ void handle_key_presses() {
 }
 
 
-void update_ubo_for_terrain(uint32_t currentImage) {
+void update_tubo_for_terrain(uint32_t currentImage) {
 
-        UniformBufferObject ubo{};
+        terrainUniformBufferObject tubo{};
         void* data;
 
-        ubo.model = glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
+        tubo.model = glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
+        
+        tubo.selector = selector;
 
-        vkMapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
+        vkMapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage], 0, sizeof(tubo), 0, &data);
+        memcpy(data, &tubo, sizeof(tubo));
         vkUnmapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage]);
 
 }
 
 
-void update_ubo_for_car(uint32_t currentImage) {
+void update_cubo_for_car(uint32_t currentImage) {
 
-        UniformBufferObject ubo{};
+        carUniformBufferObject cubo{};
         void* data;
 
-        ubo.model = glm::translate(glm::mat4(1.0), car.pos)
+        cubo.model = glm::translate(glm::mat4(1.0), car.pos)
                     * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.y), glm::vec3(0, 1, 0))
                     * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.x), glm::vec3(1, 0, 0))
                     * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.z), glm::vec3(0, 0, 1));
 
-        vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
+        vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(cubo), 0, &data);
+        memcpy(data, &cubo, sizeof(cubo));
         vkUnmapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage]);
 
 }
@@ -373,6 +383,7 @@ void update_gubo_for_camera(uint32_t currentImage) {
                                         glm::vec3(car.pos.x, car.pos.y + 2.0f, car.pos.z),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
         }
+        
 
         vkMapMemory(device, DS_global.uniformBuffersMemory[0][currentImage], 0, sizeof(gubo), 0, &data);
         memcpy(data, &gubo, sizeof(gubo));
@@ -415,9 +426,9 @@ void updateUniformBuffer(uint32_t currentImage) {
 
         handle_key_presses();
 
-        update_ubo_for_car(currentImage);
+        update_cubo_for_car(currentImage);
         update_gubo_for_camera(currentImage);
-        update_ubo_for_terrain(currentImage);
+        update_tubo_for_terrain(currentImage);
         update_ubo_for_skybox(currentImage);
 
         //compute_fps();
