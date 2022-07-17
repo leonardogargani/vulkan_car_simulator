@@ -30,4 +30,5 @@ void main() {
 	fragViewDir = (gubo.view[3]).xyz - (tubo.model * vec4(pos,  1.0)).xyz;
 	fragNorm = (tubo.model * vec4(norm, 0.0)).xyz;
 	fragTexCoord = 200.0 * texCoord;
+
 }

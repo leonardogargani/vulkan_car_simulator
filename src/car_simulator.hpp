@@ -28,26 +28,23 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-// New in Lesson 23 - to load images
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
 
 const std::string TEXTURE_PATH = "textures/";
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-// Lesson 22.0
 const std::vector<const char*> validationLayers = {
                 "VK_LAYER_KHRONOS_validation"
 };
 
-// Lesson 13
 const std::vector<const char*> deviceExtensions = {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-// Lesson 17
 struct Vertex {
         glm::vec3 pos;
         glm::vec3 norm;

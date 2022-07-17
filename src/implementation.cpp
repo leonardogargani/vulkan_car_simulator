@@ -25,15 +25,16 @@ float terrain_scale_factor = 10.0;
 
 float delta_time = 0.0;
 float logging_time = 0.0;
+float debounce_time = 0.0;
 
 int fps_sum = 0;
 int fps_count = 0;
 
 int spotlight_on;
+int headlights_on;
 
 enum CameraType { Normal, Distant, FirstPerson, MiniMap };
 CameraType camera_type = Normal;
-
 
 Car car = Car();
 
@@ -136,6 +137,14 @@ void handle_key_presses() {
                 spotlight_on = 1;
         }
 
+        // turn on/off the headlights
+        if (glfwGetKey(window, GLFW_KEY_SPACE) && (debounce_time >= 0.4)) {
+                headlights_on = (headlights_on == 0) ? 1 : 0;
+                debounce_time = 0.0;
+        } else {
+                debounce_time += delta_time;
+        }
+
         // change velocity with a constant acceleration/deceleration profile
         if (glfwGetKey(window, GLFW_KEY_W)) {
                 car.lin_speed = std::min(car.lin_speed + LIN_ACCEL * delta_time, TOP_LIN_SPEED - (-car.angle.z * PITCH_SLOWDOWN));
@@ -209,7 +218,6 @@ void handle_key_presses() {
         if (camera_type == FirstPerson) {
                 car.angle.x = 0.0;
                 car.angle.z = 0.0;
-                car.last_angles = std::vector<glm::vec3>(300, car.angle);
         } else {
                 // compute new position of the wheels
                 car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
@@ -252,6 +260,10 @@ void handle_key_presses() {
                 car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
         }
 
+        if ((camera_type == FirstPerson) || (camera_type == MiniMap)) {
+                car.last_angles = std::vector<glm::vec3>(300, car.angle);
+        }
+
 }
 
 
@@ -261,8 +273,12 @@ void update_tubo_for_terrain(uint32_t currentImage) {
         void* data;
 
         tubo.model = glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
-        
+
         tubo.spotlight_on = spotlight_on;
+        tubo.headlights_on = headlights_on;
+
+        tubo.car_pos = car.pos;
+        tubo.car_ang = glm::radians(car.angle);
 
         vkMapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage], 0, sizeof(tubo), 0, &data);
         memcpy(data, &tubo, sizeof(tubo));

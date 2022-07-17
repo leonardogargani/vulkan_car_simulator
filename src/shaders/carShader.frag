@@ -28,7 +28,8 @@ layout(location = 0) out vec4 outColor;
 //  - light model: one directional light
 void main() {
 
-	const vec3 objColor = texture(texSampler, fragTexCoord).rgb;
+	const vec3 obj_color = texture(texSampler, fragTexCoord).rgb;
+	vec3 light_color = vec3(1.0, 0.6, 0.6);
 
 	if (cubo.spotlight_on == 1) {
 
@@ -45,14 +46,14 @@ void main() {
 		float distance_g = 10.0;
 		float exponent_beta = 0.5;
 
-		vec3 spot_light_color = objColor
+		vec3 spot_light_color = obj_color
 								* pow((distance_g / length(light_pos - point_pos)), exponent_beta)
 								* clamp((dot(light_dir, spot_light_dir) - cos_outer_angle) / (cos_inner_angle - cos_outer_angle), 0, 1);
 
 		vec3 N = normalize(fragNorm);
 		const vec3 L = normalize(vec3(-5.0f, 2.0f, -2.5f));
 
-		vec3 lambert_diffuse = objColor * max(dot(N, L), 0.0f) * DIFFUSE_WEIGHT;
+		vec3 lambert_diffuse = obj_color * max(dot(N, L), 0.0f) * DIFFUSE_WEIGHT;
 
 
 		const vec3 specColor = vec3(1.0f, 1.0f, 1.0f);
@@ -62,10 +63,10 @@ void main() {
 		vec3 phong_specular = specColor * pow(max(dot(R, V), 0.0f), specPower) * SPECULAR_WEIGHT;
 
 
-		vec3 ambient = objColor * AMBIENT_WEIGHT;
+		vec3 ambient = obj_color * AMBIENT_WEIGHT;
 
 
-		outColor = vec4(spot_light_color + lambert_diffuse + phong_specular + ambient, 1.0);
+		outColor = vec4((spot_light_color + lambert_diffuse + phong_specular + ambient) * light_color, 1.0);
 
 	} else {
 
@@ -77,17 +78,11 @@ void main() {
 		vec3 R = -reflect(L, N);
 		vec3 V = normalize(fragViewDir);
 
-		// Lambert diffuse
-		vec3 diffuse = objColor * max(dot(N, L), 0.0f) * 1.5f;
-		// Phong specular
-		vec3 specular = specColor * pow(max(dot(R, V), 0.0f), specPower);
-		// Hemispheric ambient
-		vec3 ambient = vec3(0.3f, 0.3f, 0.3f) * objColor;
+		vec3 lambert_diffuse = obj_color * max(dot(N, L), 0.0f) * 1.5f;
+		vec3 phong_specular = specColor * pow(max(dot(R, V), 0.0f), specPower);
+		vec3 ambient = vec3(0.3f, 0.3f, 0.3f) * obj_color;
 
-		// NEW!!!
-		vec3 light_color = vec3(1.0, 0.6, 0.6);
-
-		outColor = vec4(clamp(ambient + diffuse + specular, vec3(0.0f), vec3(1.0f)) * light_color, 1.0f);
+		outColor = vec4(clamp(ambient + lambert_diffuse + phong_specular, vec3(0.0f), vec3(1.0f)) * light_color, 1.0f);
 
 	}
 
