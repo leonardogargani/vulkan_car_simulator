@@ -17,13 +17,11 @@ layout(location = 2) in vec2 texCoord;
 layout(location = 0) out vec3 fragViewDir;
 layout(location = 1) out vec3 fragNorm;
 layout(location = 2) out vec2 fragTexCoord;
-// NEW!!!
 layout(location = 3) out vec3 fragPos;
 
 
 void main() {
 
-	// NEW!!!
 	fragPos = (tubo.model * vec4(pos, 1.0)).xyz;
 
 	gl_Position = gubo.proj * gubo.view * tubo.model * vec4(pos, 1.0);

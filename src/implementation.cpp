@@ -30,8 +30,8 @@ float debounce_time = 0.0;
 int fps_sum = 0;
 int fps_count = 0;
 
-int spotlight_on;
-int headlights_on;
+int spotlight_on = 0;
+int headlights_on = 0;
 
 enum CameraType { Normal, Distant, FirstPerson, MiniMap };
 CameraType camera_type = Normal;
@@ -114,6 +114,25 @@ float compute_point_height(float x, float z) {
         }
 
         return interpolated_height * terrain_scale_factor;
+
+}
+
+
+glm::vec3 rotate_pos(glm::vec3 pos, glm::vec3 ang, glm::vec3 offset) {
+
+        glm::mat3 rotate_yaw = glm::mat3(cos(ang.x), 0.0, -sin(ang.x),
+                                       0.0, 1.0, 0.0,
+                                       sin(ang.x), 0.0, cos(ang.x));
+
+        glm::mat3 rotate_pitch = glm::mat3(cos(ang.y), sin(ang.y), 0.0,
+                                         -sin(ang.y), cos(ang.y), 0.0,
+                                         0.0, 0.0, 1.0);
+
+        glm::mat3 rotate_roll = glm::mat3(1.0, 0.0, 0.0,
+                                        0.0, cos(ang.z), sin(ang.z),
+                                        0.0, -sin(ang.z), cos(ang.z));
+
+        return pos + rotate_roll * rotate_yaw * rotate_pitch * offset;
 
 }
 
@@ -214,51 +233,47 @@ void handle_key_presses() {
         // update car height
         car.pos.y = compute_point_height(car.pos.x, car.pos.z);
 
-        // compute real pitch and roll only if useful
-        if (camera_type == FirstPerson) {
-                car.angle.x = 0.0;
-                car.angle.z = 0.0;
-        } else {
-                // compute new position of the wheels
-                car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
-                                     (1.0 * sin(glm::radians(-car.angle.y)));
-                car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) +
-                                     (-1.0814 * sin(glm::radians(-car.angle.y)));
-                car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
-                                     (-1.0 * sin(glm::radians(-car.angle.y)));
-                car.wheel_fr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) +
-                                     (-1.0814 * sin(glm::radians(-car.angle.y)));
-                car.wheel_rl_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) -
-                                     (1.0 * sin(glm::radians(-car.angle.y)));
-                car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) +
-                                     (2.4023 * sin(glm::radians(-car.angle.y)));
-                car.wheel_rr_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) -
-                                     (-1.0 * sin(glm::radians(-car.angle.y)));
-                car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) +
-                                     (2.4023 * sin(glm::radians(-car.angle.y)));
 
-                // compute the height of the wheels
-                car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
-                car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
-                car.wheel_rl_pos.y = compute_point_height(car.wheel_rl_pos.x, car.wheel_rl_pos.z);
-                car.wheel_rr_pos.y = compute_point_height(car.wheel_rr_pos.x, car.wheel_rr_pos.z);
+        // compute new position of the wheels
+        car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
+                             (1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_fl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) +
+                             (-1.0814 * sin(glm::radians(-car.angle.y)));
+        car.wheel_fr_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
+                             (-1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_fr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) +
+                             (-1.0814 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rl_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) -
+                             (1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rl_pos.z = car.pos.z + (1.0 * cos(glm::radians(-car.angle.y))) +
+                             (2.4023 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rr_pos.x = car.pos.x + (2.4023 * cos(glm::radians(-car.angle.y))) -
+                             (-1.0 * sin(glm::radians(-car.angle.y)));
+        car.wheel_rr_pos.z = car.pos.z + (-1.0 * cos(glm::radians(-car.angle.y))) +
+                             (2.4023 * sin(glm::radians(-car.angle.y)));
 
-                // to compute car roll, make an average between front and rear wheels
-                float delta_y_front_rear = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) +
-                                            (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
-                // width between wheels
-                float delta_z_front_rear = 1.0 - (-1.0);
+        // compute the height of the wheels
+        car.wheel_fl_pos.y = compute_point_height(car.wheel_fl_pos.x, car.wheel_fl_pos.z);
+        car.wheel_fr_pos.y = compute_point_height(car.wheel_fr_pos.x, car.wheel_fr_pos.z);
+        car.wheel_rl_pos.y = compute_point_height(car.wheel_rl_pos.x, car.wheel_rl_pos.z);
+        car.wheel_rr_pos.y = compute_point_height(car.wheel_rr_pos.x, car.wheel_rr_pos.z);
 
-                car.angle.x = -glm::degrees(atan(delta_y_front_rear / delta_z_front_rear));
+        // to compute car roll, make an average between front and rear wheels
+        float delta_y_front_rear = ((car.wheel_fl_pos.y - car.wheel_fr_pos.y) +
+                                    (car.wheel_rl_pos.y - car.wheel_rr_pos.y)) / 2.0;
+        // width between wheels
+        float delta_z_front_rear = 1.0 - (-1.0);
 
-                // to compute car pitch, make an average between front and rear wheels
-                float delta_y_left_right = ((car.wheel_fl_pos.y - car.wheel_rl_pos.y) +
-                                            (car.wheel_fr_pos.y - car.wheel_rr_pos.y)) / 2.0;
-                // distance between wheels front and rear wheels
-                float delta_x_left_right = 2.4023 - (-1.0814);
+        car.angle.x = -glm::degrees(atan(delta_y_front_rear / delta_z_front_rear));
 
-                car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
-        }
+        // to compute car pitch, make an average between front and rear wheels
+        float delta_y_left_right = ((car.wheel_fl_pos.y - car.wheel_rl_pos.y) +
+                                    (car.wheel_fr_pos.y - car.wheel_rr_pos.y)) / 2.0;
+        // distance between wheels front and rear wheels
+        float delta_x_left_right = 2.4023 - (-1.0814);
+
+        car.angle.z = -glm::degrees(atan(delta_y_left_right / delta_x_left_right));
+
 
         if ((camera_type == FirstPerson) || (camera_type == MiniMap)) {
                 car.last_angles = std::vector<glm::vec3>(300, car.angle);
@@ -292,10 +307,14 @@ void update_cubo_for_car(uint32_t currentImage) {
         carUniformBufferObject cubo{};
         void* data;
 
+        glm::vec3 car_angle = (camera_type == FirstPerson)
+                        ? glm::vec3(0.0, car.angle.y, 0.0)
+                        : car.angle;
+
         cubo.model = glm::translate(glm::mat4(1.0), car.pos)
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.y), glm::vec3(0, 1, 0))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.x), glm::vec3(1, 0, 0))
-                    * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.z), glm::vec3(0, 0, 1));
+                     * glm::rotate(glm::mat4(1.0), glm::radians(car_angle.y), glm::vec3(0, 1, 0))
+                     * glm::rotate(glm::mat4(1.0), glm::radians(car_angle.x), glm::vec3(1, 0, 0))
+                     * glm::rotate(glm::mat4(1.0), glm::radians(car_angle.z), glm::vec3(0, 0, 1));
 
         cubo.spotlight_on = spotlight_on;
 
@@ -356,17 +375,22 @@ void update_gubo_for_camera(uint32_t currentImage) {
         float camera_offset_angle = atan(camera_offset.z / camera_offset.x);
 
         if (camera_type == FirstPerson) {
-                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car.angle.y / 2.0));
 
-                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car.angle.y / 2.0) - camera_offset_angle),
-                                                             0.0,
-                                                             corda * cos(glm::radians(car.angle.y / 2.0) - camera_offset_angle));
+                glm::vec3 cam_pos = rotate_pos(car.pos, glm::radians(glm::vec3(
+                                                                                        car.angle.y,
+                                                                                        0.0,
+                                                                                        0.0)), camera_offset);
 
-                gubo.view = glm::lookAt(car.pos + camera_offset - camera_offset_rotation,
-                                        glm::vec3(car.pos.x - 100.0 * cos(glm::radians(car.angle.y)),
-                                                  car.pos.y + 4.0,
-                                                  car.pos.z + 100.0 * sin(glm::radians(car.angle.y))),
+                glm::vec3 target_offset = glm::vec3(-100.0, 4.0, 0.0);
+                glm::vec3 target_pos = rotate_pos(cam_pos, glm::radians(glm::vec3(
+                                                                                        car.angle.y,
+                                                                                        0.0,
+                                                                                        0.0)), target_offset);
+
+                gubo.view = glm::lookAt(cam_pos,
+                                        target_pos,
                                         glm::vec3(0.0f, 1.0f, 0.0f));
+
 
         } else if (camera_type == MiniMap) {
 
@@ -386,21 +410,19 @@ void update_gubo_for_camera(uint32_t currentImage) {
                         car.last_angles.push_back(car.angle);
                 }
 
-                float corda = 2.0 * sqrt(pow(camera_offset.x, 2.0) + pow(camera_offset.z, 2.0)) * sin(glm::radians(car_angle.y / 2.0));
-
-                glm::vec3 camera_offset_rotation = glm::vec3(corda * sin(glm::radians(car_angle.y / 2.0) - camera_offset_angle),
-                                                             0.0,
-                                                             corda * cos(glm::radians(car_angle.y / 2.0) - camera_offset_angle));
-
-                glm::vec3 camera_position = car.pos + camera_offset - camera_offset_rotation;
+                glm::vec3 cam_pos = rotate_pos(car.pos, glm::radians(glm::vec3(
+                                                                                car.angle.y,
+                                                                                0.0,
+                                                                                0.0)), camera_offset);
 
                 // since the camera is following the car, never allow it to be under the terrain
                 // (and keep a margin of 2,0 above the terrain)
-                camera_position.y = std::max(camera_position.y, compute_point_height(camera_position.x, camera_position.z) + 2.0f);
+                cam_pos.y = std::max(cam_pos.y, compute_point_height(cam_pos.x, cam_pos.z) + 2.0f);
 
-                gubo.view = glm::lookAt(camera_position,
+                gubo.view = glm::lookAt(cam_pos,
                                         glm::vec3(car.pos.x, car.pos.y + 2.0f, car.pos.z),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
+
         }
         
 

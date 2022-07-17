@@ -15,17 +15,11 @@ layout(set = 1, binding = 0) uniform carUniformBufferObject {
 layout(location = 0) in vec3 fragViewDir;
 layout(location = 1) in vec3 fragNorm;
 layout(location = 2) in vec2 fragTexCoord;
-// NEW!!!
 layout(location = 3) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
 
 
-// By default we had:
-//  - diffuse lighting: Lambert
-//  - specular lighting: Phong
-//  - indirect lighting: Hemispheric oriented along the y-axis
-//  - light model: one directional light
 void main() {
 
 	const vec3 obj_color = texture(texSampler, fragTexCoord).rgb;

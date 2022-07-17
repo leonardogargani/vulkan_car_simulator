@@ -21,9 +21,19 @@ layout(location = 0) out vec4 outColor;
 
 vec3 rotate_pos(vec3 pos, vec3 ang, vec3 offset) {
 
-	return pos + vec3(offset.x * cos(-ang.x) - offset.z * sin(-ang.x),
-						offset.y,
-						offset.x * sin(-ang.x) + offset.z * cos(-ang.x));
+	mat3 rotate_yaw = mat3(cos(ang.x), 0.0, -sin(ang.x),
+							0.0, 1.0, 0.0,
+							sin(ang.x), 0.0, cos(ang.x));
+
+	mat3 rotate_pitch = mat3(cos(ang.y), sin(ang.y), 0.0,
+							-sin(ang.y), cos(ang.y), 0.0,
+							0.0, 0.0, 1.0);
+
+	mat3 rotate_roll = mat3(1.0, 0.0, 0.0,
+							0.0, cos(ang.z), sin(ang.z),
+							0.0, -sin(ang.z), cos(ang.z));
+
+	return pos + rotate_roll * rotate_yaw * rotate_pitch * offset;
 
 }
 
