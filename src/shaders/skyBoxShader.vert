@@ -6,9 +6,9 @@ layout(set = 0, binding = 0) uniform globalUniformBufferObject {
 	mat4 proj;
 } gubo;
 
-layout(set = 1, binding = 0) uniform UniformBufferObject {
+layout(set = 1, binding = 0) uniform skyboxUniformBufferObject {
 	mat4 model;
-} ubo;
+} subo;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -19,6 +19,6 @@ layout(location = 0) out vec3 fragTexCoord;
 void main()
 {
     fragTexCoord = inPosition;
-    vec4 pos = gubo.proj * gubo.view * ubo.model * vec4(inPosition, 1.0);
+    vec4 pos = gubo.proj * gubo.view * subo.model * vec4(inPosition, 1.0);
     gl_Position = pos.xyww;
 }

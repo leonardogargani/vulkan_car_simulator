@@ -23,21 +23,21 @@ struct globalUniformBufferObject {
         alignas(16) glm::mat4 proj;
 };
 
-struct UniformBufferObject {
+struct skyboxUniformBufferObject {
         // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
 };
 
 struct carUniformBufferObject {
+        alignas(4) int spotlight_on;
         // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
-        alignas(16) glm::vec4 selector;
 };
 
 struct terrainUniformBufferObject {
+        alignas(4) int spotlight_on;
         // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
-        alignas(16) glm::vec4 selector;
 };
 
 
@@ -99,7 +99,7 @@ protected:
                                                 {1, TEXTURE, 0, &T_SlTerrain}});
 
                         DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {0, UNIFORM, sizeof(skyboxUniformBufferObject), nullptr},
                                                 {1, TEXTURE, 0, &T_SlSkyBox}});
 
                         DS_global.init(this, &DSLglobal, {
@@ -110,7 +110,7 @@ protected:
 		void recreateSwapChainPipelinesInit() {
                         P_Car.init(this, "shaders/carVert.spv", "shaders/carFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
                         P_Terrain.init(this, "shaders/terrainVert.spv", "shaders/terrainFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
-                        P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
+                        P_SkyBox.init(this, "shaders/skyBoxVert.spv", "shaders/skyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
 		}
 
 
@@ -135,7 +135,7 @@ protected:
                 // The last array is a vector of pointer to the layouts of the sets that will be used in the pipeline
                 P_Car.init(this, "shaders/carVert.spv", "shaders/carFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
                 P_Terrain.init(this, "shaders/terrainVert.spv", "shaders/terrainFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
-                P_SkyBox.init(this, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
+                P_SkyBox.init(this, "shaders/skyBoxVert.spv", "shaders/skyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
 
                 // Models, textures and Descriptors (values assigned to the uniforms)
                 M_SlCar.init(this, "models/Hummer.obj");
@@ -217,7 +217,7 @@ protected:
                 //T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
                 T_SlSkyBox.init(this, {"sky/sky_universert.png", "sky/sky_univerself.png", "sky/sky_universeup.png", "sky/sky_universedn.png", "sky/sky_universeft.png", "sky/sky_universebk.png"});
                 DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-                                                {0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+                                                {0, UNIFORM, sizeof(skyboxUniformBufferObject), nullptr},
                                                 {1, TEXTURE, 0, &T_SlSkyBox}});
 
                 DS_global.init(this, &DSLglobal, {

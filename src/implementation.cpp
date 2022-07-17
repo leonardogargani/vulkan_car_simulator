@@ -9,7 +9,7 @@
 
 struct Car {
         glm::vec3 pos;
-        glm::vec3 angle = glm::vec3(1.0);
+        glm::vec3 angle = glm::vec3(0.0);
         float lin_speed;
         float ang_speed;
         std::vector<glm::vec3> last_angles{300, glm::vec3(0.0f)};
@@ -29,7 +29,7 @@ float logging_time = 0.0;
 int fps_sum = 0;
 int fps_count = 0;
 
-glm::vec4 selector;
+int spotlight_on;
 
 enum CameraType { Normal, Distant, FirstPerson, MiniMap };
 CameraType camera_type = Normal;
@@ -131,9 +131,9 @@ void handle_key_presses() {
         }
         
         if (glfwGetKey(window, GLFW_KEY_1)) {
-        		selector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+                spotlight_on = 0;
         } else if (glfwGetKey(window, GLFW_KEY_2)) {
-        		selector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+                spotlight_on = 1;
         }
 
         // change velocity with a constant acceleration/deceleration profile
@@ -209,6 +209,7 @@ void handle_key_presses() {
         if (camera_type == FirstPerson) {
                 car.angle.x = 0.0;
                 car.angle.z = 0.0;
+                car.last_angles = std::vector<glm::vec3>(300, car.angle);
         } else {
                 // compute new position of the wheels
                 car.wheel_fl_pos.x = car.pos.x + (-1.0814 * cos(glm::radians(-car.angle.y))) -
@@ -261,7 +262,7 @@ void update_tubo_for_terrain(uint32_t currentImage) {
 
         tubo.model = glm::scale(glm::mat4(1.0), glm::vec3(terrain_scale_factor));
         
-        tubo.selector = selector;
+        tubo.spotlight_on = spotlight_on;
 
         vkMapMemory(device, DS_SlTerrain.uniformBuffersMemory[0][currentImage], 0, sizeof(tubo), 0, &data);
         memcpy(data, &tubo, sizeof(tubo));
@@ -280,22 +281,24 @@ void update_cubo_for_car(uint32_t currentImage) {
                     * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.x), glm::vec3(1, 0, 0))
                     * glm::rotate(glm::mat4(1.0), glm::radians(car.angle.z), glm::vec3(0, 0, 1));
 
+        cubo.spotlight_on = spotlight_on;
+
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(cubo), 0, &data);
         memcpy(data, &cubo, sizeof(cubo));
         vkUnmapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage]);
 
 }
 
-void update_ubo_for_skybox(uint32_t currentImage) {
-		
-        UniformBufferObject skybox_ubo{};
+void update_subo_for_skybox(uint32_t currentImage) {
+
+        skyboxUniformBufferObject subo{};
         void* data;
 
         // model is scaled to make it appear as at infinite distance
-        skybox_ubo.model = glm::scale(glm::mat4(1.0), glm::vec3(100000.0f));
+        subo.model = glm::scale(glm::mat4(1.0), glm::vec3(100000.0f));
 
-        vkMapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage], 0, sizeof(skybox_ubo), 0, &data);
-        memcpy(data, &skybox_ubo, sizeof(skybox_ubo));
+        vkMapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage], 0, sizeof(subo), 0, &data);
+        memcpy(data, &subo, sizeof(subo));
         vkUnmapMemory(device, DS_SlSkyBox.uniformBuffersMemory[0][currentImage]);
 
 }
@@ -429,9 +432,9 @@ void updateUniformBuffer(uint32_t currentImage) {
         update_cubo_for_car(currentImage);
         update_gubo_for_camera(currentImage);
         update_tubo_for_terrain(currentImage);
-        update_ubo_for_skybox(currentImage);
+        update_subo_for_skybox(currentImage);
 
-        //compute_fps();
-        //log_info(0.3);
+        compute_fps();
+        log_info(0.3);
 
 }
