@@ -32,6 +32,7 @@ int fps_count = 0;
 
 int spotlight_on = 0;
 int headlights_on = 0;
+int backlights_on = 0;
 
 enum CameraType { Normal, Distant, FirstPerson, MiniMap };
 CameraType camera_type = Normal;
@@ -180,6 +181,8 @@ void handle_key_presses() {
                 }
         }
 
+        backlights_on = ((car.lin_speed < 0) && (headlights_on == 1)) ? 1 : 0;
+
         // steer only when the car is moving, and invert steering when going backward
         if (glfwGetKey(window, GLFW_KEY_A)) {
                 if (car.lin_speed > 0.0) {
@@ -317,6 +320,10 @@ void update_cubo_for_car(uint32_t currentImage) {
                      * glm::rotate(glm::mat4(1.0), glm::radians(car_angle.z), glm::vec3(0, 0, 1));
 
         cubo.spotlight_on = spotlight_on;
+        cubo.backlights_on = backlights_on;
+
+        cubo.car_pos = car.pos;
+        cubo.car_ang = glm::radians(car.angle);
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(cubo), 0, &data);
         memcpy(data, &cubo, sizeof(cubo));
@@ -409,13 +416,18 @@ void update_gubo_for_camera(uint32_t currentImage) {
                 }
 
                 glm::vec3 cam_pos = rotate_pos(car.pos, glm::radians(glm::vec3(
-                                                                                car.angle.y,
+                                                                                car_angle.y,
                                                                                 0.0,
                                                                                 0.0)), camera_offset);
 
-                // since the camera is following the car, never allow it to be under the terrain
-                // (and keep a margin of 2,0 above the terrain)
-                cam_pos.y = std::max(cam_pos.y, compute_point_height(cam_pos.x, cam_pos.z) + 2.0f);
+                if ((cam_pos.x >= terrain.height * terrain_scale_factor / 2.03)
+                        || (cam_pos.x <= terrain.height * terrain_scale_factor / -2.03)
+                        || (cam_pos.z >= terrain.height * terrain_scale_factor / 2.03)
+                        || (cam_pos.z <= terrain.height * terrain_scale_factor / -2.03)) {
+                        // keep unchanged the cam position
+                } else {
+                        cam_pos.y = std::max(cam_pos.y, compute_point_height(cam_pos.x, cam_pos.z) + 3.0f);
+                }
 
                 gubo.view = glm::lookAt(cam_pos,
                                         glm::vec3(car.pos.x, car.pos.y + 2.0f, car.pos.z),

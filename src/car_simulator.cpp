@@ -30,8 +30,11 @@ struct skyboxUniformBufferObject {
 
 struct carUniformBufferObject {
         alignas(4) int spotlight_on;
+        alignas(4) int backlights_on;
         // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
+        alignas(4) glm::vec3 car_pos;
+        alignas(4) glm::vec3 car_ang;
 };
 
 struct terrainUniformBufferObject {

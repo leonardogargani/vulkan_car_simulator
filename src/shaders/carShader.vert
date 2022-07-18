@@ -7,7 +7,10 @@ layout(set = 0, binding = 0) uniform globalUniformBufferObject {
 
 layout(set = 1, binding = 0) uniform carUniformBufferObject {
 	int spotlight_on;
+	int backlights_on;
 	mat4 model;
+	vec3 car_pos;
+	vec3 car_ang;
 } cubo;
 
 layout(location = 0) in vec3 pos;

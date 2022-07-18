@@ -6,8 +6,11 @@ layout(set = 0, binding = 0) uniform globalUniformBufferObject {
 } gubo;
 
 layout(set = 1, binding = 0) uniform terrainUniformBufferObject {
+	int headlights_on;
 	int spotlight_on;
 	mat4 model;
+	int car_pos;
+	int car_ang;
 } tubo;
 
 layout(location = 0) in vec3 pos;

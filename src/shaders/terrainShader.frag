@@ -122,9 +122,6 @@ void main() {
 											0, 1)
 										* 2.5f;
 
-		vec3 N = normalize(fragNorm);
-		const vec3 L = normalize(vec3(-5.0f, 2.0f, -2.5f));
-
 		outColor += vec4((left_spot_light_color + right_spot_light_color) * light_color, 1.0);
 	}
 
