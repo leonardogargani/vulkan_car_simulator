@@ -89,10 +89,10 @@ void main() {
 
 		vec3 point_pos = fragPos;
 
-		vec3 left_headlight_offset = vec3(-1.0, 0.5, 0.7);
-		vec3 right_headlight_offset = vec3(-1.0, 0.5, -0.7);
-		vec3 left_target_offset = vec3(-10.0, -0.5, 1.0);
-		vec3 right_target_offset = vec3(-10.0, -0.5, -1.0);
+		vec3 left_headlight_offset = vec3(-0.5, 0.5, 0.5);
+		vec3 right_headlight_offset = vec3(-0.5, 0.5, -0.5);
+		vec3 left_target_offset = vec3(-8.0, -1.0, 0.0);
+		vec3 right_target_offset = vec3(-8.0, -1.0, 0.0);
 
 
 		vec3 left_light_pos = rotate_pos(tubo.car_pos, tubo.car_ang, left_headlight_offset);
@@ -106,10 +106,10 @@ void main() {
 		vec3 right_light_dir = (right_light_pos - point_pos) / length(right_light_pos - point_pos);
 		vec3 right_spot_light_dir = (right_light_pos - right_target_pos) / length(right_light_pos - right_target_pos);
 
-		float cos_outer_angle = 0.97;
-		float cos_inner_angle = 0.99;
-		float distance_g = 1.0;
-		float exponent_beta = 1.0;
+		float cos_outer_angle = 0.92;
+		float cos_inner_angle = 1.00;
+		float distance_g = 0.3;
+		float exponent_beta = 0.5;
 
 		vec3 left_spot_light_color = obj_color
 										* pow((distance_g / length(left_light_pos - point_pos)), exponent_beta)

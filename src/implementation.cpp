@@ -372,8 +372,6 @@ void update_gubo_for_camera(uint32_t currentImage) {
 
         gubo.proj[1][1] *= -1;
 
-        float camera_offset_angle = atan(camera_offset.z / camera_offset.x);
-
         if (camera_type == FirstPerson) {
 
                 glm::vec3 cam_pos = rotate_pos(car.pos, glm::radians(glm::vec3(
