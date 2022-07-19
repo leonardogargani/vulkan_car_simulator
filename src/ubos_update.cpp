@@ -320,10 +320,6 @@ void update_cubo_for_car(uint32_t currentImage) {
                      * glm::rotate(glm::mat4(1.0), glm::radians(car_angle.z), glm::vec3(0, 0, 1));
 
         cubo.spotlight_on = spotlight_on;
-        cubo.backlights_on = backlights_on;
-
-        cubo.car_pos = car.pos;
-        cubo.car_ang = glm::radians(car.angle);
 
         vkMapMemory(device, DS_SlCar.uniformBuffersMemory[0][currentImage], 0, sizeof(cubo), 0, &data);
         memcpy(data, &cubo, sizeof(cubo));

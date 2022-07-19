@@ -18,31 +18,28 @@ struct globalUniformBufferObject {
         alignas(16) glm::mat4 proj;
 };
 
+
 struct skyboxUniformBufferObject {
-        // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
 };
 
+
 struct carUniformBufferObject {
         alignas(4) int spotlight_on;
-        alignas(4) int backlights_on;
-        // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
-        alignas(4) glm::vec3 car_pos;
-        alignas(4) glm::vec3 car_ang;
 };
+
 
 struct terrainUniformBufferObject {
         alignas(4) int headlights_on;
         alignas(4) int spotlight_on;
-        // matrix containing the rotation of the model
         alignas(16) glm::mat4 model;
         alignas(4) glm::vec3 car_pos;
         alignas(4) glm::vec3 car_ang;
 };
 
 
-class MyProject : public BaseProject {
+class CarSimulator : public BaseProject {
 protected:
 
         // Descriptor Layouts (what will be passed to the shaders)
@@ -83,36 +80,39 @@ protected:
                 setsInPool = 5; //con 8 compila senza errori, 3 è il valore prima dello skybox
         }
 
+
         // Function used to compare two vec3.
         static bool isP1beforeP2(glm::vec3 p1, glm::vec3 p2) {
                 return ((p1.x < p2.x)
                         || ((fabs(p1.x - p2.x) < 0.0001) && (p1.z < p2.z)));
         }
-        
-		void recreateSwapChainDSInit() {
-		
-                        DS_SlCar.init(this, &DSLobj, {
-                                                {0, UNIFORM, sizeof(carUniformBufferObject), nullptr},
-                                                {1, TEXTURE, 0, &T_SlCar}});
-				        
-                        DS_SlTerrain.init(this, &DSLobj, {
-                                                {0, UNIFORM, sizeof(terrainUniformBufferObject), nullptr},
-                                                {1, TEXTURE, 0, &T_SlTerrain}});
 
-                        DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-                                                {0, UNIFORM, sizeof(skyboxUniformBufferObject), nullptr},
-                                                {1, TEXTURE, 0, &T_SlSkyBox}});
 
-                        DS_global.init(this, &DSLglobal, {
-                                                {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}});
-	
-		}
-		
-		void recreateSwapChainPipelinesInit() {
-                        P_Car.init(this, "shaders/carVert.spv", "shaders/carFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
-                        P_Terrain.init(this, "shaders/terrainVert.spv", "shaders/terrainFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
-                        P_SkyBox.init(this, "shaders/skyBoxVert.spv", "shaders/skyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
-		}
+        void recreateSwapChainDSInit() {
+
+                DS_SlCar.init(this, &DSLobj, {
+                                        {0, UNIFORM, sizeof(carUniformBufferObject), nullptr},
+                                        {1, TEXTURE, 0, &T_SlCar}});
+
+                DS_SlTerrain.init(this, &DSLobj, {
+                                        {0, UNIFORM, sizeof(terrainUniformBufferObject), nullptr},
+                                        {1, TEXTURE, 0, &T_SlTerrain}});
+
+                DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
+                                        {0, UNIFORM, sizeof(skyboxUniformBufferObject), nullptr},
+                                        {1, TEXTURE, 0, &T_SlSkyBox}});
+
+                DS_global.init(this, &DSLglobal, {
+                                        {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}});
+
+        }
+
+
+        void recreateSwapChainPipelinesInit() {
+                P_Car.init(this, "shaders/carVert.spv", "shaders/carFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                P_Terrain.init(this, "shaders/terrainVert.spv", "shaders/terrainFrag.spv", {&DSLglobal, &DSLobj}, VK_COMPARE_OP_LESS);
+                P_SkyBox.init(this, "shaders/skyBoxVert.spv", "shaders/skyBoxFrag.spv", {&DSLglobal, &DSLSkyBox}, VK_COMPARE_OP_LESS_OR_EQUAL);
+        }
 
 
         void localInit() {
@@ -123,14 +123,17 @@ protected:
                                 // second element : the time of element (buffer or texture)
                                 // third  element : the pipeline stage where it will be used
                                 {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
-                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}});
+                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+                });
 
                 DSLglobal.init(this, {
-                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},});
+                                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS}
+                });
                 
                 DSLSkyBox.init(this, {
                                 {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
-                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}});
+                                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+                });
 
                 // Pipelines (Shader couples)
                 // The last array is a vector of pointer to the layouts of the sets that will be used in the pipeline
@@ -140,14 +143,21 @@ protected:
 
                 // Models, textures and Descriptors (values assigned to the uniforms)
                 M_SlCar.init(this, "models/Hummer.obj");
-                T_SlCar.init(this, "textures/HummerDiff.png");
+                T_SlCar.init(this, "textures/Hummer.png");
                 DS_SlCar.init(this, &DSLobj, {
                                 // - first  element : the binding number
                                 // - second element : UNIFORM or TEXTURE (an enum) depending on the type
                                 // - third  element : only for UNIFORMs, the size of the corresponding C++ object
                                 // - fourth element : only for TEXTUREs, the pointer to the corresponding texture object
                                 {0, UNIFORM, sizeof(carUniformBufferObject), nullptr},
-                                {1, TEXTURE, 0, &T_SlCar}});
+                                {1, TEXTURE, 0, &T_SlCar}
+                });
+
+                M_SlSkyBox.init(this, "models/SkyBox.obj");
+                T_SlSkyBox.init(this, {"sky/SkyBox_top.png", "sky/SkyBox_left.png", "sky/SkyBox_up.png", "sky/SkyBox_down.png", "sky/SkyBox_front.png", "sky/SkyBox_back.png"});
+                DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
+                                {0, UNIFORM, sizeof(skyboxUniformBufferObject), nullptr},
+                                {1, TEXTURE, 0, &T_SlSkyBox}});
 
                 M_SlTerrain.init(this, "models/Terrain.obj");
                 T_SlTerrain.init(this, "textures/Terrain.png");
@@ -208,18 +218,10 @@ protected:
             			row = 0;
             		}
                 }
-
 				
                 terrain.height = map_max_x - map_min_x;
                 terrain.width = map_max_z - map_min_z;
 
-
-                M_SlSkyBox.init(this, "models/SkyBoxCube.obj");
-                //T_SlSkyBox.init(this, {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"});
-                T_SlSkyBox.init(this, {"sky/sky_universert.png", "sky/sky_univerself.png", "sky/sky_universeup.png", "sky/sky_universedn.png", "sky/sky_universeft.png", "sky/sky_universebk.png"});
-                DS_SlSkyBox.initDSSkyBox(this, &DSLSkyBox, {
-                                                {0, UNIFORM, sizeof(skyboxUniformBufferObject), nullptr},
-                                                {1, TEXTURE, 0, &T_SlSkyBox}});
 
                 DS_global.init(this, &DSLglobal, {
                                                 {0, UNIFORM, sizeof(globalUniformBufferObject), nullptr}});
@@ -241,6 +243,7 @@ protected:
                 DSLSkyBox.cleanup();
         }
 
+
         void recreateSwapChainLocalCleanupDS() {
         		DS_SlCar.cleanup();
         		DS_SlTerrain.cleanup();
@@ -248,11 +251,13 @@ protected:
         		DS_global.cleanup();      		
         }
         
+
         void recreateSwapChainLocalCleanupPipelines() {
                 P_SkyBox.cleanup();
                 P_Car.cleanup();
                 P_Terrain.cleanup();
         }
+
 
         // Here it is the creation of the command buffer:
         // you send to the GPU all the objects you want to draw, with their buffers and textures.
@@ -311,29 +316,28 @@ protected:
                                         P_SkyBox.pipelineLayout, 1, 1, &DS_SlSkyBox.descriptorSets[currentImage],
                                         0, nullptr);
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_SlSkyBox.indices.size()), 1, 0, 0, 0);
-				
 
         }
 
 
 
-        /************************************************
+        /**********************************************************************************
          *
-         * We moved our code into an external .cpp file.
+         *  The update of the Uniform Buffers has been moved into an external .cpp file.
          *
-         ************************************************/
+         **********************************************************************************/
 
-        #include "implementation.cpp"
+        #include "ubos_update.cpp"
 
 
 };
 
 
 int main() {
-        MyProject app;
+        CarSimulator car_simulator;
 
         try {
-                app.run();
+                car_simulator.run();
         } catch (const std::exception& e) {
                 std::cerr << e.what() << std::endl;
                 return EXIT_FAILURE;

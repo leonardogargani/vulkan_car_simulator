@@ -9,10 +9,7 @@ layout(set=1, binding = 1) uniform sampler2D texSampler;
 
 layout(set = 1, binding = 0) uniform carUniformBufferObject {
 	int spotlight_on;
-	int backlights_on;
 	mat4 model;
-	vec3 car_pos;
-	vec3 car_ang;
 } cubo;
 
 layout(location = 0) in vec3 fragViewDir;
@@ -99,47 +96,6 @@ void main() {
 		vec3 ambient = vec3(0.3f, 0.3f, 0.3f) * obj_color;
 
 		outColor = vec4(clamp(ambient + lambert_diffuse + phong_specular, vec3(0.0f), vec3(1.0f)) * light_color, 1.0f);
-
-	}
-
-	if (cubo.backlights_on == 1) {
-
-		vec3 point_pos = fragPos;
-
-		vec3 left_backlight_offset = vec3(3.4, 1.32, 0.94);
-		vec3 right_backlight_offset = vec3(3.4, 1.32, -0.94);
-		vec3 left_target_offset = vec3(-0.2, 0.0, 0.0);
-		vec3 right_target_offset = vec3(-0.2, 0.0, 0.0);
-
-
-		vec3 left_light_pos = rotate_pos(cubo.car_pos, cubo.car_ang, left_backlight_offset);
-		vec3 left_target_pos = rotate_pos(left_light_pos, cubo.car_ang, left_target_offset);
-
-		vec3 right_light_pos = rotate_pos(cubo.car_pos, cubo.car_ang, right_backlight_offset);
-		vec3 right_target_pos = rotate_pos(right_light_pos, cubo.car_ang, right_target_offset);
-
-		vec3 left_light_dir = (left_light_pos - point_pos) / length(left_light_pos - point_pos);
-		vec3 left_spot_light_dir = (left_light_pos - left_target_pos) / length(left_light_pos - left_target_pos);
-		vec3 right_light_dir = (right_light_pos - point_pos) / length(right_light_pos - point_pos);
-		vec3 right_spot_light_dir = (right_light_pos - right_target_pos) / length(right_light_pos - right_target_pos);
-
-		float cos_outer_angle = 0.94;
-		float cos_inner_angle = 1.00;
-		float distance_g = 0.1;
-		float exponent_beta = 1.5;
-
-		vec3 left_spot_light_color = obj_color
-										* pow((distance_g / length(left_light_pos - point_pos)), exponent_beta)
-										* clamp((dot(left_light_dir, left_spot_light_dir) - cos_outer_angle) / (cos_inner_angle - cos_outer_angle),
-											0, 1)
-										* 2.5f;
-		vec3 right_spot_light_color = obj_color
-										* pow((distance_g / length(right_light_pos - point_pos)), exponent_beta)
-										* clamp((dot(right_light_dir, right_spot_light_dir) - cos_outer_angle) / (cos_inner_angle - cos_outer_angle),
-											0, 1)
-										* 2.5f;
-
-		outColor += vec4((left_spot_light_color + right_spot_light_color) * light_color, 1.0);
 
 	}
 
