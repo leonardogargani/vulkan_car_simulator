@@ -88,6 +88,7 @@ Here is a list with all the features that have been implemented in this applicat
   - night-time scenario
     - headlights that can be switched on/off
     - spotlight above the centre of the map
+- logging of useful information in the cli
 
 
 ## Key bindings
@@ -106,8 +107,15 @@ Key bindings for the cameras:
 
 Key bindings for other features:
 - <kbd>1</kbd> to switch to the day-time scenario;
-- <kbd>2</kbd> to switch to the bight-time scenario;
+- <kbd>2</kbd> to switch to the night-time scenario;
 - <kbd>space</kbd> to switch on/off the headlights;
 - <kbd>R</kbd> to reset to the initial position.
- 
 
+
+## Screenshots
+
+![](img/third_person_day.png)
+![](img/first_person_day.png)
+![](img/third_person_night.png)
+![](img/yaw_pitch_roll.png)
+![](img/spotlight.png)
