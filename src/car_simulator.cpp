@@ -9,11 +9,6 @@ struct Terrain {
         std::vector<std::vector<float>> altitudes{VERTICES_NUMBER, std::vector<float>(VERTICES_NUMBER, 0.0f)};
 };
 
-struct Point {
-	float x;
-	float y;
-	float z;
-};
 
 Terrain terrain = Terrain();
 
@@ -88,8 +83,8 @@ protected:
                 setsInPool = 5; //con 8 compila senza errori, 3 è il valore prima dello skybox
         }
 
-        // Function used to compare two Points.
-        static bool isP1beforeP2(Point p1, Point p2) {
+        // Function used to compare two vec3.
+        static bool isP1beforeP2(glm::vec3 p1, glm::vec3 p2) {
                 return ((p1.x < p2.x)
                         || ((fabs(p1.x - p2.x) < 0.0001) && (p1.z < p2.z)));
         }
@@ -166,7 +161,7 @@ protected:
                 float map_min_z = 0.0;
                 float map_max_z = 0.0;
 
-                std::vector<Point> terrain_points;
+                std::vector<glm::vec3> terrain_points;
 
                 for (int i = 0; i < std::size(M_SlTerrain.vertices); i++) {
 
@@ -191,7 +186,7 @@ protected:
                         }
                         
                         if (!is_point_present){
-                        	Point point = {M_SlTerrain.vertices[i].pos.x, M_SlTerrain.vertices[i].pos.y, M_SlTerrain.vertices[i].pos.z};
+                        	glm::vec3 point = {M_SlTerrain.vertices[i].pos.x, M_SlTerrain.vertices[i].pos.y, M_SlTerrain.vertices[i].pos.z};
                                 terrain_points.push_back(point);
                         }
 
