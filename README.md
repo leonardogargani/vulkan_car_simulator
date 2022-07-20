@@ -17,7 +17,7 @@ In order to run the application, use the following instructions:
 2. compile the application with `make`;
 3. execute the application with `make test`.
 
-You can delete the application with `make clean`.
+You can delete the compiled shaders and the application with `make clean`.
 
 
 ## Vulkan implementation details
@@ -51,7 +51,7 @@ In total there are four types of UniformBuffers:
 
 Three types of Descriptor Set Layouts have been created, having the following relationship with Descriptor Sets:
 - `DSLglobal`, specifying a template for the `DS_global` Descriptor Set;
-- `DSLobj`, specifying a template for the `DS_SlCar` and `DS_SlCar` Descriptor Sets;
+- `DSLobj`, specifying a template for the `DS_SlCar` and `DS_SlTerrain` Descriptor Sets;
 - `DSLSkyBox`, specifying a template for the `DS_SlSkyBox` Descriptor Set.
 
 ### Pipelines
@@ -114,8 +114,14 @@ Key bindings for other features:
 
 ## Screenshots
 
+Here are some screenshot of the application:
+
 ![](img/third_person_day.png)
+
 ![](img/first_person_day.png)
+
 ![](img/third_person_night.png)
+
 ![](img/yaw_pitch_roll.png)
+
 ![](img/spotlight.png)

@@ -5,9 +5,6 @@ LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
 all: src/car_simulator.cpp
 	g++ $(CFLAGS) $(INC) -o src/car_simulator src/car_simulator.cpp src/car_simulator.hpp $(LDFLAGS)
 
-debug: src/car_simulator.cpp
-	g++ -g -std=c++17 $(INC) -o src/car_simulator src/car_simulator.cpp src/car_simulator.hpp $(LDFLAGS)
-
 .PHONY: test clean
 
 test: src/car_simulator
@@ -15,4 +12,7 @@ test: src/car_simulator
 	./car_simulator
 
 clean:
-	rm -f src/car_simulator
+	rm -f src/car_simulator; \
+	rm src/shaders/*.spv
+
+
