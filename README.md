@@ -125,3 +125,9 @@ Here are some screenshot of the application:
 ![](img/yaw_pitch_roll.png)
 
 ![](img/spotlight.png)
+
+
+## Authors
+
+- Giuseppe Chiari
+- Leonardo Gargani
