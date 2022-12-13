@@ -5,9 +5,10 @@ Project for the Computer Graphics course at Politecnico di Milano, A.Y. 2021/202
 
 ## Goal
 
-Design a simulator of a car that navigates on a non-flat environment.
-
-The point of view has to be in third person and the 3D model of the car has to be aligned with the terrain.
+The goal of the project is stated as follows:
+> Design a simulator of a car that navigates in a non-flat environment.
+> 
+> The point of view has to be in third person and the 3D model of the car has to be aligned with the terrain.
 
 
 ## Run instruction
@@ -17,10 +18,17 @@ In order to run the application, use the following instructions:
 2. compile the application with `make`;
 3. execute the application with `make test`.
 
-You can delete the compiled shaders and the application with `make clean`.
+You can delete the compiled shaders and the executable with `make clean`.
 
 
 ## Vulkan implementation details
+
+The project has been written in C++ and [Vulkan](https://www.vulkan.org), with the help of the following libraries:
+- [GLFW](https://www.glfw.org), a library to create windows;
+- [GLM](https://github.com/g-truc/glm), a header-only library for linear algebra operations;
+- [stb](https://github.com/nothings/stb), a library for loading texture images;
+- [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader), a library for loading .obj 3D models.
+
 
 ### Models & Textures
 
@@ -114,7 +122,7 @@ Key bindings for other features:
 
 ## Screenshots
 
-Here are some screenshot of the application:
+Here are some screenshots of the application:
 
 ![](img/third_person_day.png)
 
